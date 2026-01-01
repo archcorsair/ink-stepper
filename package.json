@@ -1,6 +1,6 @@
 {
   "name": "ink-stepper",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A step-by-step wizard/stepper component for Ink terminal applications",
   "type": "module",
   "files": [
