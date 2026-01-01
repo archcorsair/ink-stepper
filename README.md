@@ -2,6 +2,22 @@
 
 Step-by-step wizard component for [Ink](https://github.com/vadimdemedes/ink) terminal applications.
 
+```
+━━━━━ ✓ ━━━━━━━━━━ ✓ ━━━━━━━━━━●━━━━━━━━━━○━━━━━
+    Theme       Directory     Review      Done
+
+┌─────────────────────────────────────────────────┐
+│                                                 │
+│  Review your selections:                        │
+│                                                 │
+│    Theme: Dark                                  │
+│    Directory: ~/projects                        │
+│                                                 │
+│  Press Enter to continue, Escape to go back     │
+│                                                 │
+└─────────────────────────────────────────────────┘
+```
+
 ## Installation
 
 ```bash
