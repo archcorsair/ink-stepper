@@ -5,6 +5,7 @@ interface UseStepperOptions {
   steps: StepConfig[];
   onComplete: () => void;
   onCancel?: () => void;
+  onStepChange?: (step: number) => void;
 }
 
 interface UseStepperReturn {
@@ -17,7 +18,7 @@ interface UseStepperReturn {
 /**
  * Internal hook for managing stepper state and navigation.
  */
-export function useStepper({ steps, onComplete, onCancel }: UseStepperOptions): UseStepperReturn {
+export function useStepper({ steps, onComplete, onCancel, onStepChange }: UseStepperOptions): UseStepperReturn {
   const [currentStep, setCurrentStep] = useState(0);
 
   const totalSteps = steps.length;
@@ -30,24 +31,31 @@ export function useStepper({ steps, onComplete, onCancel }: UseStepperOptions): 
     if (currentStep >= totalSteps - 1) {
       onComplete();
     } else {
-      setCurrentStep((prev) => prev + 1);
+      const newStep = currentStep + 1;
+      setCurrentStep(newStep);
+      onStepChange?.(newStep);
     }
-  }, [canProceed, currentStep, totalSteps, onComplete]);
+  }, [canProceed, currentStep, totalSteps, onComplete, onStepChange]);
 
   const goBack = useCallback(() => {
     if (currentStep <= 0) {
       onCancel?.();
     } else {
-      setCurrentStep((prev) => prev - 1);
+      const newStep = currentStep - 1;
+      setCurrentStep(newStep);
+      onStepChange?.(newStep);
     }
-  }, [currentStep, onCancel]);
+  }, [currentStep, onCancel, onStepChange]);
 
   const goTo = useCallback(
     (step: number) => {
       const clampedStep = Math.max(0, Math.min(step, totalSteps - 1));
-      setCurrentStep(clampedStep);
+      if (clampedStep !== currentStep) {
+        setCurrentStep(clampedStep);
+        onStepChange?.(clampedStep);
+      }
     },
-    [totalSteps],
+    [totalSteps, currentStep, onStepChange],
   );
 
   const cancel = useCallback(() => {

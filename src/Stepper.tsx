@@ -45,6 +45,7 @@ export function Stepper({
   children,
   onComplete,
   onCancel,
+  onStepChange,
   keyboardNav = true,
   showProgress = true,
   renderProgress,
@@ -56,6 +57,7 @@ export function Stepper({
     steps,
     onComplete,
     onCancel,
+    onStepChange,
   });
 
   // Keyboard navigation

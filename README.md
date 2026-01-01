@@ -5,8 +5,16 @@ Step-by-step wizard component for [Ink](https://github.com/vadimdemedes/ink) ter
 ## Installation
 
 ```bash
+# npm
 npm install ink-stepper
-# or
+
+# jsr
+npx jsr add @archcorsair/ink-stepper
+
+# pnpm
+pnpm add ink-stepper
+
+# bun
 bun add ink-stepper
 ```
 
@@ -48,6 +56,7 @@ Main container component that orchestrates step navigation.
 | `children` | `ReactNode` | required | Step elements |
 | `onComplete` | `() => void` | required | Called when advancing past the last step |
 | `onCancel` | `() => void` | - | Called when canceling (Escape on first step or `cancel()`) |
+| `onStepChange` | `(step: number) => void` | - | Called when current step changes (zero-based index) |
 | `keyboardNav` | `boolean` | `true` | Enable Enter/Escape navigation |
 | `showProgress` | `boolean` | `true` | Show the progress bar |
 | `renderProgress` | `(ctx: ProgressContext) => ReactNode` | - | Custom progress bar renderer |

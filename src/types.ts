@@ -70,6 +70,8 @@ export interface StepperProps {
   onComplete: () => void;
   /** Called when canceling (Escape on first step or cancel() call) */
   onCancel?: () => void;
+  /** Called when the current step changes (step is zero-based) */
+  onStepChange?: (step: number) => void;
   /** Enable keyboard navigation (Enter/Escape) (default: true) */
   keyboardNav?: boolean;
   /** Show the progress bar (default: true) */
