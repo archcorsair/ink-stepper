@@ -1,0 +1,20 @@
+{
+  "name": "ink-stepper-docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev .",
+    "build": "vitepress build .",
+    "preview": "vitepress preview ."
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "vitepress": "^2.0.0-alpha.15",
+    "vitepress-plugin-group-icons": "^1.6.5",
+    "vitepress-plugin-llms": "^1.10.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,40 @@
+:root {
+  --vp-c-brand-1: #9ca3af;
+  --vp-c-brand-2: #6b7280;
+  --vp-c-brand-3: #4b5563;
+}
+
+.dark {
+  --vp-c-brand-1: #d1d5db;
+  --vp-c-brand-2: #9ca3af;
+  --vp-c-brand-3: #6b7280;
+}
+
+/* Force local search button to be neutral/transparent */
+.VPLocalSearchBox .search-input {
+  background-color: transparent !important;
+}
+
+/* Target the button wrapper if present */
+.VPNavBarSearchButton {
+  background-color: transparent !important;
+}
+
+/* Specific target for local search button in recent VitePress versions */
+button.DocSearch-Button,
+.VPLocalSearchBox button {
+  background-color: var(--vp-c-bg-alt) !important;
+  /* border: 1px solid transparent !important; */
+}
+
+.dark button.DocSearch-Button,
+.dark .VPLocalSearchBox button {
+  background-color: var(--vp-c-bg-alt) !important;
+}
+
+/* Ensure hover state is visible but neutral */
+button.DocSearch-Button:hover,
+.VPLocalSearchBox button:hover {
+  background-color: var(--vp-c-bg-mute) !important;
+  border-color: var(--vp-c-brand-1) !important;
+}
