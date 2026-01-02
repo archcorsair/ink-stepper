@@ -4,7 +4,7 @@
 
 ## Installation
 
-Install the package using your preferred package manager:
+### [NPM](https://www.npmjs.com/package/ink-stepper)
 
 ::: code-group
 
@@ -22,6 +22,28 @@ yarn add ink-stepper
 
 ```bash [bun]
 bun add ink-stepper
+```
+
+:::
+
+### [JSR](https://jsr.io/@archcorsair/ink-stepper)
+
+::: code-group
+
+```bash [npm]
+npx jsr add @archcorsair/ink-stepper
+```
+
+```bash [pnpm]
+pnpm i jsr:@archcorsair/ink-stepper
+```
+
+```bash [yarn]
+yarn add jsr:@archcorsair/ink-stepper
+```
+
+```bash [bun]
+bunx jsr add @archcorsair/ink-stepper
 ```
 
 :::
