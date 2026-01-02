@@ -1,6 +1,6 @@
 import { defineConfig } from "vitepress";
 import { groupIconMdPlugin, groupIconVitePlugin } from "vitepress-plugin-group-icons";
-import llms from "vitepress-plugin-llms";
+import llms, { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -11,6 +11,7 @@ export default defineConfig({
   markdown: {
     config(md) {
       md.use(groupIconMdPlugin);
+      md.use(copyOrDownloadAsMarkdownButtons);
     },
   },
 
