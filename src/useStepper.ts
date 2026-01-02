@@ -1,57 +1,136 @@
 import { useCallback, useMemo, useState } from "react";
-import type { ProgressContext, StepConfig, StepContext } from "./types";
+import type { ProgressContext, StepContext } from "./types";
+import type { RegisteredStep } from "./StepperContext";
 
 interface UseStepperOptions {
-  steps: StepConfig[];
   onComplete: () => void;
   onCancel?: () => void;
   onStepChange?: (step: number) => void;
+  onEnterStep?: (step: number) => void;
+  onExitStep?: (step: number) => void | boolean | Promise<void | boolean>;
+  initialStep?: number;
+  controlledStep?: number;
 }
 
 interface UseStepperReturn {
   currentStep: number;
+  currentStepId: string | null;
   stepContext: StepContext;
   progressContext: ProgressContext;
-  currentStepConfig: StepConfig | undefined;
+  registeredSteps: RegisteredStep[];
+  registerStep: (step: RegisteredStep) => void;
+  unregisterStep: (id: string) => void;
+  isValidating: boolean;
+  disableNavigation: () => void;
+  enableNavigation: () => void;
+  isNavigationDisabled: boolean;
 }
 
 /**
  * Internal hook for managing stepper state and navigation.
  */
-export function useStepper({ steps, onComplete, onCancel, onStepChange }: UseStepperOptions): UseStepperReturn {
-  const [currentStep, setCurrentStep] = useState(0);
+export function useStepper({
+  onComplete,
+  onCancel,
+  onStepChange,
+  onEnterStep,
+  onExitStep,
+  initialStep = 0,
+  controlledStep,
+}: UseStepperOptions): UseStepperReturn {
+  const [internalStep, setInternalStep] = useState(initialStep);
+  const [registeredSteps, setRegisteredSteps] = useState<RegisteredStep[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
+  const [isNavigationDisabled, setIsNavigationDisabled] = useState(false);
 
-  const totalSteps = steps.length;
-  const currentStepConfig = steps[currentStep];
-  const canProceed = currentStepConfig?.canProceed ?? true;
+  const disableNavigation = useCallback(() => {
+    setIsNavigationDisabled(true);
+  }, []);
 
-  const goNext = useCallback(() => {
+  const enableNavigation = useCallback(() => {
+    setIsNavigationDisabled(false);
+  }, []);
+
+  // Use controlled step if provided, otherwise internal
+  const currentStep = controlledStep ?? internalStep;
+
+  // Sort registered steps by mount order
+  const sortedSteps = useMemo(
+    () => [...registeredSteps].sort((a, b) => a.order - b.order),
+    [registeredSteps],
+  );
+
+  const totalSteps = sortedSteps.length;
+  const currentStepConfig = sortedSteps[currentStep];
+  const currentStepId = currentStepConfig?.id ?? null;
+
+  const registerStep = useCallback((step: RegisteredStep) => {
+    setRegisteredSteps((prev) => {
+      // Avoid duplicates
+      if (prev.some((s) => s.id === step.id)) return prev;
+      return [...prev, step];
+    });
+  }, []);
+
+  const unregisterStep = useCallback((id: string) => {
+    setRegisteredSteps((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const resolveCanProceed = useCallback(async (): Promise<boolean> => {
+    const canProceed = currentStepConfig?.canProceed ?? true;
+    if (typeof canProceed === "function") {
+      setIsValidating(true);
+      try {
+        return await canProceed();
+      } finally {
+        setIsValidating(false);
+      }
+    }
+    return canProceed;
+  }, [currentStepConfig]);
+
+  const goNext = useCallback(async () => {
+    const canProceed = await resolveCanProceed();
     if (!canProceed) return;
+
+    // Call onExitStep - can cancel navigation by returning false
+    if (onExitStep) {
+      const result = await onExitStep(currentStep);
+      if (result === false) return;
+    }
 
     if (currentStep >= totalSteps - 1) {
       onComplete();
     } else {
       const newStep = currentStep + 1;
-      setCurrentStep(newStep);
+      setInternalStep(newStep);
       onStepChange?.(newStep);
+      onEnterStep?.(newStep);
     }
-  }, [canProceed, currentStep, totalSteps, onComplete, onStepChange]);
+  }, [resolveCanProceed, currentStep, totalSteps, onComplete, onStepChange, onExitStep, onEnterStep]);
 
-  const goBack = useCallback(() => {
+  const goBack = useCallback(async () => {
+    // Call onExitStep - can cancel navigation by returning false
+    if (onExitStep) {
+      const result = await onExitStep(currentStep);
+      if (result === false) return;
+    }
+
     if (currentStep <= 0) {
       onCancel?.();
     } else {
       const newStep = currentStep - 1;
-      setCurrentStep(newStep);
+      setInternalStep(newStep);
       onStepChange?.(newStep);
+      onEnterStep?.(newStep);
     }
-  }, [currentStep, onCancel, onStepChange]);
+  }, [currentStep, onCancel, onStepChange, onExitStep, onEnterStep]);
 
   const goTo = useCallback(
     (step: number) => {
       const clampedStep = Math.max(0, Math.min(step, totalSteps - 1));
       if (clampedStep !== currentStep) {
-        setCurrentStep(clampedStep);
+        setInternalStep(clampedStep);
         onStepChange?.(clampedStep);
       }
     },
@@ -72,26 +151,34 @@ export function useStepper({ steps, onComplete, onCancel, onStepChange }: UseSte
       totalSteps,
       isFirst: currentStep === 0,
       isLast: currentStep === totalSteps - 1,
+      isValidating,
     }),
-    [goNext, goBack, goTo, cancel, currentStep, totalSteps],
+    [goNext, goBack, goTo, cancel, currentStep, totalSteps, isValidating],
   );
 
   const progressContext: ProgressContext = useMemo(
     () => ({
       currentStep,
-      steps: steps.map((step, idx) => ({
+      steps: sortedSteps.map((step, idx) => ({
         name: step.name,
         completed: idx < currentStep,
         current: idx === currentStep,
       })),
     }),
-    [currentStep, steps],
+    [currentStep, sortedSteps],
   );
 
   return {
     currentStep,
+    currentStepId,
     stepContext,
     progressContext,
-    currentStepConfig,
+    registeredSteps: sortedSteps,
+    registerStep,
+    unregisterStep,
+    isValidating,
+    disableNavigation,
+    enableNavigation,
+    isNavigationDisabled,
   };
 }

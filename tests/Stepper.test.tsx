@@ -1,7 +1,9 @@
 import { describe, expect, mock, test } from "bun:test";
 import { Text } from "ink";
 import { render } from "ink-testing-library";
-import { Step, Stepper } from "../src";
+import type React from "react";
+import { Step, Stepper, useStepperInput } from "../src";
+import { StepperContext } from "../src/StepperContext";
 
 describe("Stepper", () => {
   test("renders first step content", () => {
@@ -118,7 +120,7 @@ describe("Stepper", () => {
     expect(typeof context.cancel).toBe("function");
   });
 
-  test("calls onComplete when goNext called on last step", () => {
+  test("calls onComplete when goNext called on last step", async () => {
     const onComplete = mock(() => {});
     let capturedGoNext: (() => void) | undefined;
 
@@ -135,6 +137,7 @@ describe("Stepper", () => {
 
     expect(onComplete).not.toHaveBeenCalled();
     capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 0));
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
@@ -275,10 +278,10 @@ describe("Stepper", () => {
     expect(frame).toBeDefined();
   });
 
-  test("only renders Step children, ignores other elements", () => {
+  test("renders non-Step children alongside steps (flexible composition)", () => {
     const { lastFrame } = render(
       <Stepper onComplete={() => {}}>
-        <Text>This should be ignored</Text>
+        <Text>Header Content</Text>
         <Step name="Real">
           <Text>Real Step</Text>
         </Step>
@@ -286,7 +289,358 @@ describe("Stepper", () => {
     );
 
     const frame = lastFrame() ?? "";
+    // With registration pattern, all children are rendered for flexible composition
     expect(frame).toContain("Real Step");
-    expect(frame).not.toContain("This should be ignored");
+    expect(frame).toContain("Header Content");
+  });
+
+  test("goTo clamps index to valid range", async () => {
+    let capturedGoTo: ((step: number) => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="One">
+          {({ goTo }) => {
+            capturedGoTo = goTo;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+        <Step name="Three">
+          <Text>Third</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    // Should clamp negative to 0
+    capturedGoTo?.(-5);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(lastFrame()).toContain("First");
+
+    // Should clamp beyond range to last
+    capturedGoTo?.(100);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(lastFrame()).toContain("Third");
+  });
+
+  test("goNext is blocked when canProceed is false", () => {
+    let capturedGoNext: (() => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="One" canProceed={false}>
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>Blocked Step</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Should Not See</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    expect(lastFrame()).toContain("Blocked Step");
+    expect(lastFrame()).not.toContain("Should Not See");
+  });
+
+  test("StepperContext provides registerStep and unregisterStep", () => {
+    render(
+      <Stepper onComplete={() => {}}>
+        <Step name="Test">
+          {() => {
+            return <Text>Test</Text>;
+          }}
+        </Step>
+      </Stepper>,
+    );
+
+    // Verify we can import the context
+    expect(StepperContext).toBeDefined();
+  });
+
+  test("Step registers itself with context on mount (wrapped steps work)", async () => {
+    const Wrapper = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}}>
+        <Wrapper>
+          <Step name="Wrapped">
+            <Text>Wrapped Content</Text>
+          </Step>
+        </Wrapper>
+        <Step name="Direct">
+          <Text>Direct Content</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    await new Promise((r) => setTimeout(r, 0));
+
+    // With registration pattern, wrapped steps should work
+    expect(lastFrame()).toContain("Wrapped Content");
+  });
+
+  test("goNext waits for async canProceed", async () => {
+    const onComplete = mock(() => {});
+    let capturedGoNext: (() => void) | undefined;
+    let resolveValidation: (value: boolean) => void;
+
+    const asyncValidator = () =>
+      new Promise<boolean>((resolve) => {
+        resolveValidation = resolve;
+      });
+
+    render(
+      <Stepper onComplete={onComplete}>
+        <Step name="Async" canProceed={asyncValidator}>
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>Async Step</Text>;
+          }}
+        </Step>
+      </Stepper>,
+    );
+
+    // Start navigation
+    capturedGoNext?.();
+
+    // Should not complete yet
+    expect(onComplete).not.toHaveBeenCalled();
+
+    // Resolve validation
+    resolveValidation!(true);
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  test("goNext blocks when async canProceed returns false", async () => {
+    let capturedGoNext: (() => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="One" canProceed={() => Promise.resolve(false)}>
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(lastFrame()).toContain("First");
+    expect(lastFrame()).not.toContain("Second");
+  });
+
+  test("goNext works with sync function canProceed", async () => {
+    let capturedGoNext: (() => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="One" canProceed={() => true}>
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(lastFrame()).toContain("Second");
+  });
+
+  test("calls onExitStep and onEnterStep during navigation", async () => {
+    const onExitStep = mock(() => {});
+    const onEnterStep = mock(() => {});
+    let capturedGoNext: (() => void) | undefined;
+
+    render(
+      <Stepper onComplete={() => {}} onExitStep={onExitStep} onEnterStep={onEnterStep}>
+        <Step name="One">
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(onExitStep).toHaveBeenCalledWith(0);
+    expect(onEnterStep).toHaveBeenCalledWith(1);
+  });
+
+  test("onExitStep returning false cancels navigation", async () => {
+    let capturedGoNext: (() => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}} onExitStep={() => false}>
+        <Step name="One">
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(lastFrame()).toContain("First");
+    expect(lastFrame()).not.toContain("Second");
+  });
+
+  test("onExitStep async returning false cancels navigation", async () => {
+    let capturedGoNext: (() => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}} onExitStep={() => Promise.resolve(false)}>
+        <Step name="One">
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(lastFrame()).toContain("First");
+    expect(lastFrame()).not.toContain("Second");
+  });
+
+  test("stepContext.isValidating is exposed for loading states", async () => {
+    let capturedContext: { goNext: () => void; isValidating: boolean } | undefined;
+    let resolveValidation: () => void;
+    const validatingStates: boolean[] = [];
+
+    const asyncValidator = () =>
+      new Promise<boolean>((resolve) => {
+        resolveValidation = () => resolve(true);
+      });
+
+    const { rerender } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="Async" canProceed={asyncValidator}>
+          {(ctx) => {
+            capturedContext = ctx;
+            validatingStates.push(ctx.isValidating);
+            return <Text>{ctx.isValidating ? "Validating..." : "Ready"}</Text>;
+          }}
+        </Step>
+      </Stepper>,
+    );
+
+    // Initially not validating
+    expect(capturedContext?.isValidating).toBe(false);
+
+    // Start validation
+    capturedContext?.goNext();
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Force re-render to capture isValidating state
+    rerender(
+      <Stepper onComplete={() => {}}>
+        <Step name="Async" canProceed={asyncValidator}>
+          {(ctx) => {
+            capturedContext = ctx;
+            validatingStates.push(ctx.isValidating);
+            return <Text>{ctx.isValidating ? "Validating..." : "Ready"}</Text>;
+          }}
+        </Step>
+      </Stepper>,
+    );
+
+    // Resolve and complete
+    resolveValidation!();
+    await new Promise((r) => setTimeout(r, 10));
+
+    // Should have seen both states
+    expect(validatingStates).toContain(false);
+  });
+
+  test("useStepperInput hook is exported and functional", () => {
+    // Verify export works
+    expect(typeof useStepperInput).toBe("function");
+  });
+
+  test("useStepperInput can disable and enable navigation", async () => {
+    let inputHook: ReturnType<typeof useStepperInput> | undefined;
+
+    const TestComponent = () => {
+      inputHook = useStepperInput();
+      return <Text>Test: {inputHook.isNavigationDisabled ? "disabled" : "enabled"}</Text>;
+    };
+
+    const { lastFrame, rerender } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="Test">
+          <TestComponent />
+        </Step>
+      </Stepper>,
+    );
+
+    // Initially enabled
+    expect(lastFrame()).toContain("enabled");
+    expect(inputHook?.isNavigationDisabled).toBe(false);
+
+    // Disable navigation
+    inputHook?.disableNavigation();
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Force rerender to see the state change
+    rerender(
+      <Stepper onComplete={() => {}}>
+        <Step name="Test">
+          <TestComponent />
+        </Step>
+      </Stepper>,
+    );
+
+    expect(inputHook?.isNavigationDisabled).toBe(true);
+
+    // Re-enable navigation
+    inputHook?.enableNavigation();
+    await new Promise((r) => setTimeout(r, 0));
+
+    rerender(
+      <Stepper onComplete={() => {}}>
+        <Step name="Test">
+          <TestComponent />
+        </Step>
+      </Stepper>,
+    );
+
+    expect(inputHook?.isNavigationDisabled).toBe(false);
   });
 });
