@@ -2,7 +2,7 @@
 
 `ink-stepper` provides lifecycle hooks that allow you to execute logic when steps are entered or exited. This is useful for analytics, saving data, or performing cleanup.
 
-## entering a Step
+## Entering a Step
 
 The `onEnterStep` callback is triggered whenever the active step changes. It receives the index of the new step.
 
@@ -37,7 +37,7 @@ The `onExitStep` callback is triggered *before* leaving the current step. It can
 </Stepper>
 ```
 
-### preventing Navigation
+### Preventing Navigation
 
 If `onExitStep` returns `false` (or a Promise that resolves to `false`), the navigation is cancelled, and the user remains on the current step. This applies to both `goNext()` and `goBack()`.
 

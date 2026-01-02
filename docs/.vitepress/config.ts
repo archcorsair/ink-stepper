@@ -61,6 +61,10 @@ export default defineConfig({
 
     socialLinks: [{ icon: "github", link: "https://github.com/archcorsair/ink-stepper" }],
 
+    search: {
+      provider: "local",
+    },
+
     footer: {
       message: "Released under the MIT License.",
       copyright: "Copyright © 2026-present",
