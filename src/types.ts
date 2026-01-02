@@ -20,6 +20,8 @@ export interface StepContext {
   isFirst: boolean;
   /** Whether this is the last step */
   isLast: boolean;
+  /** Whether async validation is in progress */
+  isValidating: boolean;
 }
 
 /**

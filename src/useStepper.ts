@@ -121,8 +121,9 @@ export function useStepper({
       totalSteps,
       isFirst: currentStep === 0,
       isLast: currentStep === totalSteps - 1,
+      isValidating,
     }),
-    [goNext, goBack, goTo, cancel, currentStep, totalSteps],
+    [goNext, goBack, goTo, cancel, currentStep, totalSteps, isValidating],
   );
 
   const progressContext: ProgressContext = useMemo(

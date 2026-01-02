@@ -464,4 +464,54 @@ describe("Stepper", () => {
 
     expect(lastFrame()).toContain("Second");
   });
+
+  test("stepContext.isValidating is exposed for loading states", async () => {
+    let capturedContext: { goNext: () => void; isValidating: boolean } | undefined;
+    let resolveValidation: () => void;
+    const validatingStates: boolean[] = [];
+
+    const asyncValidator = () =>
+      new Promise<boolean>((resolve) => {
+        resolveValidation = () => resolve(true);
+      });
+
+    const { rerender } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="Async" canProceed={asyncValidator}>
+          {(ctx) => {
+            capturedContext = ctx;
+            validatingStates.push(ctx.isValidating);
+            return <Text>{ctx.isValidating ? "Validating..." : "Ready"}</Text>;
+          }}
+        </Step>
+      </Stepper>,
+    );
+
+    // Initially not validating
+    expect(capturedContext?.isValidating).toBe(false);
+
+    // Start validation
+    capturedContext?.goNext();
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Force re-render to capture isValidating state
+    rerender(
+      <Stepper onComplete={() => {}}>
+        <Step name="Async" canProceed={asyncValidator}>
+          {(ctx) => {
+            capturedContext = ctx;
+            validatingStates.push(ctx.isValidating);
+            return <Text>{ctx.isValidating ? "Validating..." : "Ready"}</Text>;
+          }}
+        </Step>
+      </Stepper>,
+    );
+
+    // Resolve and complete
+    resolveValidation!();
+    await new Promise((r) => setTimeout(r, 10));
+
+    // Should have seen both states
+    expect(validatingStates).toContain(false);
+  });
 });
