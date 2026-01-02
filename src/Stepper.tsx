@@ -1,25 +1,9 @@
 import { Box, useInput } from "ink";
 import React, { useMemo } from "react";
-import { Step } from "./Step";
+import { StepperContext, type StepperContextValue } from "./StepperContext";
 import { StepperProgress } from "./StepperProgress";
-import type { StepConfig, StepperProps } from "./types";
+import type { StepperProps } from "./types";
 import { useStepper } from "./useStepper";
-
-/**
- * Extracts step configuration from Step children.
- */
-function extractSteps(children: React.ReactNode): StepConfig[] {
-  return React.Children.toArray(children)
-    .filter(
-      (child): child is React.ReactElement<React.ComponentProps<typeof Step>> =>
-        React.isValidElement(child) && child.type === Step,
-    )
-    .map((child) => ({
-      name: child.props.name,
-      canProceed: child.props.canProceed ?? true,
-      children: child.props.children,
-    }));
-}
 
 /**
  * Stepper component for building step-by-step wizard flows.
@@ -46,23 +30,30 @@ export function Stepper({
   onComplete,
   onCancel,
   onStepChange,
+  step: controlledStep,
   keyboardNav = true,
   showProgress = true,
   renderProgress,
   markers,
 }: StepperProps): React.JSX.Element {
-  const steps = useMemo(() => extractSteps(children), [children]);
-
-  const { stepContext, progressContext, currentStepConfig } = useStepper({
-    steps,
+  const {
+    stepContext,
+    progressContext,
+    currentStepId,
+    registerStep,
+    unregisterStep,
+    isValidating,
+  } = useStepper({
     onComplete,
     onCancel,
     onStepChange,
+    controlledStep,
   });
 
   // Keyboard navigation
   useInput(
     (_input, key) => {
+      if (isValidating) return; // Block navigation during validation
       if (key.return) {
         stepContext.goNext();
       }
@@ -73,27 +64,27 @@ export function Stepper({
     { isActive: keyboardNav },
   );
 
-  // Render current step content
-  const renderStepContent = () => {
-    if (!currentStepConfig) return null;
-
-    const { children: stepChildren } = currentStepConfig;
-
-    if (typeof stepChildren === "function") {
-      return stepChildren(stepContext);
-    }
-
-    return stepChildren;
-  };
+  const contextValue: StepperContextValue = useMemo(
+    () => ({
+      registerStep,
+      unregisterStep,
+      stepContext,
+      currentStepId,
+    }),
+    [registerStep, unregisterStep, stepContext, currentStepId],
+  );
 
   return (
-    <Box flexDirection="column">
-      {/* Progress bar */}
-      {showProgress &&
-        (renderProgress ? renderProgress(progressContext) : <StepperProgress {...progressContext} markers={markers} />)}
+    <StepperContext.Provider value={contextValue}>
+      <Box flexDirection="column">
+        {/* Progress bar */}
+        {showProgress &&
+          progressContext.steps.length > 0 &&
+          (renderProgress ? renderProgress(progressContext) : <StepperProgress {...progressContext} markers={markers} />)}
 
-      {/* Current step content */}
-      {renderStepContent()}
-    </Box>
+        {/* Step children - they self-register and self-render */}
+        {children}
+      </Box>
+    </StepperContext.Provider>
   );
 }

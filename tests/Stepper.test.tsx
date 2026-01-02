@@ -1,6 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
 import { Text } from "ink";
 import { render } from "ink-testing-library";
+import type React from "react";
 import { Step, Stepper } from "../src";
 import { StepperContext } from "../src/StepperContext";
 
@@ -119,7 +120,7 @@ describe("Stepper", () => {
     expect(typeof context.cancel).toBe("function");
   });
 
-  test("calls onComplete when goNext called on last step", () => {
+  test("calls onComplete when goNext called on last step", async () => {
     const onComplete = mock(() => {});
     let capturedGoNext: (() => void) | undefined;
 
@@ -136,6 +137,7 @@ describe("Stepper", () => {
 
     expect(onComplete).not.toHaveBeenCalled();
     capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 0));
     expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
@@ -276,10 +278,10 @@ describe("Stepper", () => {
     expect(frame).toBeDefined();
   });
 
-  test("only renders Step children, ignores other elements", () => {
+  test("renders non-Step children alongside steps (flexible composition)", () => {
     const { lastFrame } = render(
       <Stepper onComplete={() => {}}>
-        <Text>This should be ignored</Text>
+        <Text>Header Content</Text>
         <Step name="Real">
           <Text>Real Step</Text>
         </Step>
@@ -287,8 +289,9 @@ describe("Stepper", () => {
     );
 
     const frame = lastFrame() ?? "";
+    // With registration pattern, all children are rendered for flexible composition
     expect(frame).toContain("Real Step");
-    expect(frame).not.toContain("This should be ignored");
+    expect(frame).toContain("Header Content");
   });
 
   test("goTo clamps index to valid range", async () => {
@@ -357,5 +360,27 @@ describe("Stepper", () => {
 
     // Verify we can import the context
     expect(StepperContext).toBeDefined();
+  });
+
+  test("Step registers itself with context on mount (wrapped steps work)", async () => {
+    const Wrapper = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}}>
+        <Wrapper>
+          <Step name="Wrapped">
+            <Text>Wrapped Content</Text>
+          </Step>
+        </Wrapper>
+        <Step name="Direct">
+          <Text>Direct Content</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    await new Promise((r) => setTimeout(r, 0));
+
+    // With registration pattern, wrapped steps should work
+    expect(lastFrame()).toContain("Wrapped Content");
   });
 });

@@ -28,8 +28,8 @@ export interface StepContext {
 export interface StepProps {
   /** Display name shown in progress bar */
   name: string;
-  /** Whether navigation to next step is allowed (default: true) */
-  canProceed?: boolean;
+  /** Whether navigation to next step is allowed (default: true). Can be boolean or async function. */
+  canProceed?: boolean | (() => boolean | Promise<boolean>);
   /** Step content - either ReactNode or render function receiving StepContext */
   children: ReactNode | ((context: StepContext) => ReactNode);
 }
@@ -72,6 +72,8 @@ export interface StepperProps {
   onCancel?: () => void;
   /** Called when the current step changes (step is zero-based) */
   onStepChange?: (step: number) => void;
+  /** Controlled step index (zero-based) - when provided, Stepper is controlled */
+  step?: number;
   /** Enable keyboard navigation (Enter/Escape) (default: true) */
   keyboardNav?: boolean;
   /** Show the progress bar (default: true) */
