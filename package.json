@@ -4,8 +4,7 @@
   "description": "A step-by-step wizard/stepper component for Ink terminal applications",
   "type": "module",
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -22,7 +21,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "test": "bun test",
+    "test": "bun test --only-failures",
     "prepublishOnly": "bun run build",
     "publish:npm": "npm publish",
     "publish:jsr": "bun run build && npx jsr publish",
@@ -45,7 +44,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/archcorsair/ink-stepper"
+    "url": "git+https://github.com/archcorsair/ink-stepper.git"
   },
   "peerDependencies": {
     "ink": "^6.6.0",

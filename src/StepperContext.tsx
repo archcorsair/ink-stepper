@@ -18,7 +18,9 @@ export interface StepperContextValue {
   isNavigationDisabled: boolean;
 }
 
-export const StepperContext = createContext<StepperContextValue | null>(null);
+export const StepperContext: React.Context<StepperContextValue | null> = createContext<StepperContextValue | null>(
+  null,
+);
 
 export function useStepperContext(): StepperContextValue {
   const context = useContext(StepperContext);
