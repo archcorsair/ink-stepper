@@ -36,6 +36,8 @@ bun add ink-stepper
 
 ## Usage
 
+Full documentation available here: https://archcorsair.github.io/ink-stepper/
+
 ```tsx
 import { Stepper, Step } from "ink-stepper";
 import { Text } from "ink";
