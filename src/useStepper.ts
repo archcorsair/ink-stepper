@@ -6,6 +6,8 @@ interface UseStepperOptions {
   onComplete: () => void;
   onCancel?: () => void;
   onStepChange?: (step: number) => void;
+  onEnterStep?: (step: number) => void;
+  onExitStep?: (step: number) => void | boolean | Promise<void | boolean>;
   initialStep?: number;
   controlledStep?: number;
 }
@@ -28,6 +30,8 @@ export function useStepper({
   onComplete,
   onCancel,
   onStepChange,
+  onEnterStep,
+  onExitStep,
   initialStep = 0,
   controlledStep,
 }: UseStepperOptions): UseStepperReturn {
@@ -77,24 +81,38 @@ export function useStepper({
     const canProceed = await resolveCanProceed();
     if (!canProceed) return;
 
+    // Call onExitStep - can cancel navigation by returning false
+    if (onExitStep) {
+      const result = await onExitStep(currentStep);
+      if (result === false) return;
+    }
+
     if (currentStep >= totalSteps - 1) {
       onComplete();
     } else {
       const newStep = currentStep + 1;
       setInternalStep(newStep);
       onStepChange?.(newStep);
+      onEnterStep?.(newStep);
     }
-  }, [resolveCanProceed, currentStep, totalSteps, onComplete, onStepChange]);
+  }, [resolveCanProceed, currentStep, totalSteps, onComplete, onStepChange, onExitStep, onEnterStep]);
 
-  const goBack = useCallback(() => {
+  const goBack = useCallback(async () => {
+    // Call onExitStep - can cancel navigation by returning false
+    if (onExitStep) {
+      const result = await onExitStep(currentStep);
+      if (result === false) return;
+    }
+
     if (currentStep <= 0) {
       onCancel?.();
     } else {
       const newStep = currentStep - 1;
       setInternalStep(newStep);
       onStepChange?.(newStep);
+      onEnterStep?.(newStep);
     }
-  }, [currentStep, onCancel, onStepChange]);
+  }, [currentStep, onCancel, onStepChange, onExitStep, onEnterStep]);
 
   const goTo = useCallback(
     (step: number) => {

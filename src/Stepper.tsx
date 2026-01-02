@@ -30,6 +30,8 @@ export function Stepper({
   onComplete,
   onCancel,
   onStepChange,
+  onEnterStep,
+  onExitStep,
   step: controlledStep,
   keyboardNav = true,
   showProgress = true,
@@ -47,6 +49,8 @@ export function Stepper({
     onComplete,
     onCancel,
     onStepChange,
+    onEnterStep,
+    onExitStep,
     controlledStep,
   });
 

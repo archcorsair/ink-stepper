@@ -465,6 +465,80 @@ describe("Stepper", () => {
     expect(lastFrame()).toContain("Second");
   });
 
+  test("calls onExitStep and onEnterStep during navigation", async () => {
+    const onExitStep = mock(() => {});
+    const onEnterStep = mock(() => {});
+    let capturedGoNext: (() => void) | undefined;
+
+    render(
+      <Stepper onComplete={() => {}} onExitStep={onExitStep} onEnterStep={onEnterStep}>
+        <Step name="One">
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(onExitStep).toHaveBeenCalledWith(0);
+    expect(onEnterStep).toHaveBeenCalledWith(1);
+  });
+
+  test("onExitStep returning false cancels navigation", async () => {
+    let capturedGoNext: (() => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}} onExitStep={() => false}>
+        <Step name="One">
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(lastFrame()).toContain("First");
+    expect(lastFrame()).not.toContain("Second");
+  });
+
+  test("onExitStep async returning false cancels navigation", async () => {
+    let capturedGoNext: (() => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}} onExitStep={() => Promise.resolve(false)}>
+        <Step name="One">
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(lastFrame()).toContain("First");
+    expect(lastFrame()).not.toContain("Second");
+  });
+
   test("stepContext.isValidating is exposed for loading states", async () => {
     let capturedContext: { goNext: () => void; isValidating: boolean } | undefined;
     let resolveValidation: () => void;
