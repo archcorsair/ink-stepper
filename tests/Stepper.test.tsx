@@ -383,4 +383,85 @@ describe("Stepper", () => {
     // With registration pattern, wrapped steps should work
     expect(lastFrame()).toContain("Wrapped Content");
   });
+
+  test("goNext waits for async canProceed", async () => {
+    const onComplete = mock(() => {});
+    let capturedGoNext: (() => void) | undefined;
+    let resolveValidation: (value: boolean) => void;
+
+    const asyncValidator = () =>
+      new Promise<boolean>((resolve) => {
+        resolveValidation = resolve;
+      });
+
+    render(
+      <Stepper onComplete={onComplete}>
+        <Step name="Async" canProceed={asyncValidator}>
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>Async Step</Text>;
+          }}
+        </Step>
+      </Stepper>,
+    );
+
+    // Start navigation
+    capturedGoNext?.();
+
+    // Should not complete yet
+    expect(onComplete).not.toHaveBeenCalled();
+
+    // Resolve validation
+    resolveValidation!(true);
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  test("goNext blocks when async canProceed returns false", async () => {
+    let capturedGoNext: (() => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="One" canProceed={() => Promise.resolve(false)}>
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(lastFrame()).toContain("First");
+    expect(lastFrame()).not.toContain("Second");
+  });
+
+  test("goNext works with sync function canProceed", async () => {
+    let capturedGoNext: (() => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="One" canProceed={() => true}>
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(lastFrame()).toContain("Second");
+  });
 });
