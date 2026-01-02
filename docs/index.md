@@ -1,25 +1,62 @@
----
-layout: home
+# Getting Started
 
-hero:
-  name: "Ink Stepper"
-  text: "Build CLI Wizards with Ease"
-  tagline: A powerful, flexible stepper component for Ink applications.
-  actions:
-    - theme: brand
-      text: Get Started
-      link: /guide/getting-started
-    - theme: alt
-      text: View API
-      link: /api/components
+`ink-stepper` is a component for building interactive step-by-step wizard flows in [Ink](https://github.com/vadimdemedes/ink) applications. It handles navigation state, input coordination, and validation so you can focus on building your CLI steps.
 
-features:
-  - title: React & Ink Native
-    details: Built specifically for Ink, leveraging React's component model for declarative CLI UIs.
-  - title: Flexible Navigation
-    details: Full control over step transitions, including async validation and conditional logic.
-  - title: Keyboard Support
-    details: Built-in keyboard navigation support (Enter/Escape) with conflict management for inputs.
-  - title: Customizable
-    details: Easily customize progress bars, markers, and step rendering to match your CLI's style.
----
+## Installation
+
+Install the package using your preferred package manager:
+
+::: code-group
+
+```bash [npm]
+npm install ink-stepper
+```
+
+```bash [pnpm]
+pnpm add ink-stepper
+```
+
+```bash [yarn]
+yarn add ink-stepper
+```
+
+```bash [bun]
+bun add ink-stepper
+```
+
+:::
+
+## Quick Start
+
+Here is a minimal example of a stepper with three steps:
+
+```tsx
+import React from 'react';
+import { render, Text } from 'ink';
+import { Stepper, Step } from 'ink-stepper';
+
+function App() {
+  return (
+    <Stepper
+      onComplete={() => console.log('All done!')}
+      onCancel={() => console.log('Cancelled.')}
+    >
+      <Step name="Welcome">
+        <Text>Welcome to the wizard! Press Enter to continue.</Text>
+      </Step>
+
+      <Step name="Info">
+        <Text>This is step 2.</Text>
+      </Step>
+
+      <Step name="Finish">
+        <Text>Ready to submit? Press Enter to finish.</Text>
+      </Step>
+    </Stepper>
+  );
+}
+
+render(<App />);
+```
+
+Run this with `ts-node` (or `bun`) to see an interactive wizard in your terminal.
