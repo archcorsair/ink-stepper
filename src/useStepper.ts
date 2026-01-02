@@ -21,6 +21,9 @@ interface UseStepperReturn {
   registerStep: (step: RegisteredStep) => void;
   unregisterStep: (id: string) => void;
   isValidating: boolean;
+  disableNavigation: () => void;
+  enableNavigation: () => void;
+  isNavigationDisabled: boolean;
 }
 
 /**
@@ -38,6 +41,15 @@ export function useStepper({
   const [internalStep, setInternalStep] = useState(initialStep);
   const [registeredSteps, setRegisteredSteps] = useState<RegisteredStep[]>([]);
   const [isValidating, setIsValidating] = useState(false);
+  const [isNavigationDisabled, setIsNavigationDisabled] = useState(false);
+
+  const disableNavigation = useCallback(() => {
+    setIsNavigationDisabled(true);
+  }, []);
+
+  const enableNavigation = useCallback(() => {
+    setIsNavigationDisabled(false);
+  }, []);
 
   // Use controlled step if provided, otherwise internal
   const currentStep = controlledStep ?? internalStep;
@@ -165,5 +177,8 @@ export function useStepper({
     registerStep,
     unregisterStep,
     isValidating,
+    disableNavigation,
+    enableNavigation,
+    isNavigationDisabled,
   };
 }

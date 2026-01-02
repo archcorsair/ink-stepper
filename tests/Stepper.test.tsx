@@ -2,7 +2,7 @@ import { describe, expect, mock, test } from "bun:test";
 import { Text } from "ink";
 import { render } from "ink-testing-library";
 import type React from "react";
-import { Step, Stepper } from "../src";
+import { Step, Stepper, useStepperInput } from "../src";
 import { StepperContext } from "../src/StepperContext";
 
 describe("Stepper", () => {
@@ -587,5 +587,60 @@ describe("Stepper", () => {
 
     // Should have seen both states
     expect(validatingStates).toContain(false);
+  });
+
+  test("useStepperInput hook is exported and functional", () => {
+    // Verify export works
+    expect(typeof useStepperInput).toBe("function");
+  });
+
+  test("useStepperInput can disable and enable navigation", async () => {
+    let inputHook: ReturnType<typeof useStepperInput> | undefined;
+
+    const TestComponent = () => {
+      inputHook = useStepperInput();
+      return <Text>Test: {inputHook.isNavigationDisabled ? "disabled" : "enabled"}</Text>;
+    };
+
+    const { lastFrame, rerender } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="Test">
+          <TestComponent />
+        </Step>
+      </Stepper>,
+    );
+
+    // Initially enabled
+    expect(lastFrame()).toContain("enabled");
+    expect(inputHook?.isNavigationDisabled).toBe(false);
+
+    // Disable navigation
+    inputHook?.disableNavigation();
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Force rerender to see the state change
+    rerender(
+      <Stepper onComplete={() => {}}>
+        <Step name="Test">
+          <TestComponent />
+        </Step>
+      </Stepper>,
+    );
+
+    expect(inputHook?.isNavigationDisabled).toBe(true);
+
+    // Re-enable navigation
+    inputHook?.enableNavigation();
+    await new Promise((r) => setTimeout(r, 0));
+
+    rerender(
+      <Stepper onComplete={() => {}}>
+        <Step name="Test">
+          <TestComponent />
+        </Step>
+      </Stepper>,
+    );
+
+    expect(inputHook?.isNavigationDisabled).toBe(false);
   });
 });

@@ -13,6 +13,9 @@ export interface StepperContextValue {
   unregisterStep: (id: string) => void;
   stepContext: StepContext | null;
   currentStepId: string | null;
+  disableNavigation: () => void;
+  enableNavigation: () => void;
+  isNavigationDisabled: boolean;
 }
 
 export const StepperContext = createContext<StepperContextValue | null>(null);

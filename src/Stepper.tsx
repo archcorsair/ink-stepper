@@ -45,6 +45,9 @@ export function Stepper({
     registerStep,
     unregisterStep,
     isValidating,
+    disableNavigation,
+    enableNavigation,
+    isNavigationDisabled,
   } = useStepper({
     onComplete,
     onCancel,
@@ -57,7 +60,7 @@ export function Stepper({
   // Keyboard navigation
   useInput(
     (_input, key) => {
-      if (isValidating) return; // Block navigation during validation
+      if (isValidating || isNavigationDisabled) return; // Block navigation during validation or when disabled
       if (key.return) {
         stepContext.goNext();
       }
@@ -74,8 +77,11 @@ export function Stepper({
       unregisterStep,
       stepContext,
       currentStepId,
+      disableNavigation,
+      enableNavigation,
+      isNavigationDisabled,
     }),
-    [registerStep, unregisterStep, stepContext, currentStepId],
+    [registerStep, unregisterStep, stepContext, currentStepId, disableNavigation, enableNavigation, isNavigationDisabled],
   );
 
   return (
