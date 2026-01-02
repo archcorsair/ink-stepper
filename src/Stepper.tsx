@@ -1,5 +1,6 @@
 import { Box, useInput } from "ink";
-import React, { useMemo } from "react";
+import type React from "react";
+import { useMemo } from "react";
 import { StepperContext, type StepperContextValue } from "./StepperContext";
 import { StepperProgress } from "./StepperProgress";
 import type { StepperProps } from "./types";
@@ -81,7 +82,15 @@ export function Stepper({
       enableNavigation,
       isNavigationDisabled,
     }),
-    [registerStep, unregisterStep, stepContext, currentStepId, disableNavigation, enableNavigation, isNavigationDisabled],
+    [
+      registerStep,
+      unregisterStep,
+      stepContext,
+      currentStepId,
+      disableNavigation,
+      enableNavigation,
+      isNavigationDisabled,
+    ],
   );
 
   return (
@@ -90,7 +99,11 @@ export function Stepper({
         {/* Progress bar */}
         {showProgress &&
           progressContext.steps.length > 0 &&
-          (renderProgress ? renderProgress(progressContext) : <StepperProgress {...progressContext} markers={markers} />)}
+          (renderProgress ? (
+            renderProgress(progressContext)
+          ) : (
+            <StepperProgress {...progressContext} markers={markers} />
+          ))}
 
         {/* Step children - they self-register and self-render */}
         {children}

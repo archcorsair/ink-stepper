@@ -412,7 +412,7 @@ describe("Stepper", () => {
     expect(onComplete).not.toHaveBeenCalled();
 
     // Resolve validation
-    resolveValidation!(true);
+    resolveValidation?.(true);
     await new Promise((r) => setTimeout(r, 10));
 
     expect(onComplete).toHaveBeenCalledTimes(1);
@@ -582,7 +582,7 @@ describe("Stepper", () => {
     );
 
     // Resolve and complete
-    resolveValidation!();
+    resolveValidation?.();
     await new Promise((r) => setTimeout(r, 10));
 
     // Should have seen both states
