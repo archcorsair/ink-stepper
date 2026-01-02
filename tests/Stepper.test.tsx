@@ -289,4 +289,57 @@ describe("Stepper", () => {
     expect(frame).toContain("Real Step");
     expect(frame).not.toContain("This should be ignored");
   });
+
+  test("goTo clamps index to valid range", async () => {
+    let capturedGoTo: ((step: number) => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="One">
+          {({ goTo }) => {
+            capturedGoTo = goTo;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+        <Step name="Three">
+          <Text>Third</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    // Should clamp negative to 0
+    capturedGoTo?.(-5);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(lastFrame()).toContain("First");
+
+    // Should clamp beyond range to last
+    capturedGoTo?.(100);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(lastFrame()).toContain("Third");
+  });
+
+  test("goNext is blocked when canProceed is false", () => {
+    let capturedGoNext: (() => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="One" canProceed={false}>
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>Blocked Step</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Should Not See</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    expect(lastFrame()).toContain("Blocked Step");
+    expect(lastFrame()).not.toContain("Should Not See");
+  });
 });
