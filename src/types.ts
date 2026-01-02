@@ -75,7 +75,7 @@ export interface StepperProps {
   /** Called when the current step changes (step is zero-based) */
   onStepChange?: (step: number) => void;
   /** Called before leaving a step (can be async, return false to cancel navigation) */
-  onExitStep?: (step: number) => void | boolean | Promise<void | boolean>;
+  onExitStep?: (step: number) => undefined | boolean | Promise<undefined | boolean>;
   /** Called after entering a step */
   onEnterStep?: (step: number) => void;
   /** Controlled step index (zero-based) - when provided, Stepper is controlled */

@@ -1,13 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
-import type { ProgressContext, StepContext } from "./types";
 import type { RegisteredStep } from "./StepperContext";
+import type { ProgressContext, StepContext } from "./types";
 
 interface UseStepperOptions {
   onComplete: () => void;
   onCancel?: () => void;
   onStepChange?: (step: number) => void;
   onEnterStep?: (step: number) => void;
-  onExitStep?: (step: number) => void | boolean | Promise<void | boolean>;
+  onExitStep?: (step: number) => undefined | boolean | Promise<undefined | boolean>;
   initialStep?: number;
   controlledStep?: number;
 }
@@ -55,10 +55,7 @@ export function useStepper({
   const currentStep = controlledStep ?? internalStep;
 
   // Sort registered steps by mount order
-  const sortedSteps = useMemo(
-    () => [...registeredSteps].sort((a, b) => a.order - b.order),
-    [registeredSteps],
-  );
+  const sortedSteps = useMemo(() => [...registeredSteps].sort((a, b) => a.order - b.order), [registeredSteps]);
 
   const totalSteps = sortedSteps.length;
   const currentStepConfig = sortedSteps[currentStep];
