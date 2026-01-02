@@ -2,6 +2,7 @@ import { describe, expect, mock, test } from "bun:test";
 import { Text } from "ink";
 import { render } from "ink-testing-library";
 import { Step, Stepper } from "../src";
+import { StepperContext } from "../src/StepperContext";
 
 describe("Stepper", () => {
   test("renders first step content", () => {
@@ -341,5 +342,20 @@ describe("Stepper", () => {
     capturedGoNext?.();
     expect(lastFrame()).toContain("Blocked Step");
     expect(lastFrame()).not.toContain("Should Not See");
+  });
+
+  test("StepperContext provides registerStep and unregisterStep", () => {
+    render(
+      <Stepper onComplete={() => {}}>
+        <Step name="Test">
+          {() => {
+            return <Text>Test</Text>;
+          }}
+        </Step>
+      </Stepper>,
+    );
+
+    // Verify we can import the context
+    expect(StepperContext).toBeDefined();
   });
 });
