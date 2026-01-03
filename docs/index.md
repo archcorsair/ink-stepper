@@ -24,7 +24,7 @@ yarn add ink-stepper
 bun add ink-stepper
 ```
 
-```bash [bun]
+```bash [deno]
 deno add npm:ink-stepper
 ```
 
