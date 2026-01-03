@@ -24,6 +24,10 @@ yarn add ink-stepper
 bun add ink-stepper
 ```
 
+```bash [bun]
+deno add npm:ink-stepper
+```
+
 :::
 
 ### [JSR](https://jsr.io/@archcorsair/ink-stepper)
@@ -44,6 +48,10 @@ yarn add jsr:@archcorsair/ink-stepper
 
 ```bash [bun]
 bunx jsr add @archcorsair/ink-stepper
+```
+
+```bash [deno]
+deno add jsr:@archcorsair/ink-stepper
 ```
 
 :::
