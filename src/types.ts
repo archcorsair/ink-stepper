@@ -8,7 +8,14 @@ export interface StepContext {
   goNext: () => void;
   /** Navigate to the previous step */
   goBack: () => void;
-  /** Jump to a specific step by index (zero-based) */
+  /**
+   * Jump to a specific step by index (zero-based).
+   *
+   * The index is clamped to the valid range and fires the full lifecycle
+   * (`onExitStep` -> `onStepChange` -> `onEnterStep`); returning `false` from
+   * `onExitStep` cancels the jump. Unlike `goNext`, `goTo` deliberately skips
+   * the current step's `canProceed` check - it is a raw jump.
+   */
   goTo: (step: number) => void;
   /** Cancel the wizard (calls onCancel) */
   cancel: () => void;
@@ -44,6 +51,8 @@ export interface ProgressContext {
   currentStep: number;
   /** Array of step metadata */
   steps: Array<{
+    /** Stable unique identifier for the step - safe to use as a React key */
+    id: string;
     name: string;
     completed: boolean;
     current: boolean;
@@ -75,11 +84,19 @@ export interface StepperProps {
   /** Called when the current step changes (step is zero-based) */
   onStepChange?: (step: number) => void;
   /** Called before leaving a step (can be async, return false to cancel navigation) */
-  onExitStep?: (step: number) => undefined | boolean | Promise<undefined | boolean>;
+  // biome-ignore lint/suspicious/noConfusingVoidType: side-effect-only handlers may return nothing; only an explicit false cancels
+  onExitStep?: (step: number) => void | boolean | Promise<void | boolean>;
   /** Called after entering a step */
   onEnterStep?: (step: number) => void;
+  /**
+   * Called when an async `canProceed` or `onExitStep` callback throws or rejects.
+   * Navigation is blocked in that case. When omitted, the error is logged via `console.error`.
+   */
+  onError?: (error: unknown) => void;
   /** Controlled step index (zero-based) - when provided, Stepper is controlled */
   step?: number;
+  /** Starting step index for uncontrolled mode (default: 0). Ignored when `step` is provided. */
+  initialStep?: number;
   /** Enable keyboard navigation (Enter/Escape) (default: true) */
   keyboardNav?: boolean;
   /** Show the progress bar (default: true) */
@@ -88,13 +105,4 @@ export interface StepperProps {
   renderProgress?: (context: ProgressContext) => ReactNode;
   /** Custom markers for progress bar states */
   markers?: StepperMarkers;
-}
-
-/**
- * Internal step configuration extracted from Step children.
- */
-export interface StepConfig {
-  name: string;
-  canProceed: boolean;
-  children: ReactNode | ((context: StepContext) => ReactNode);
 }

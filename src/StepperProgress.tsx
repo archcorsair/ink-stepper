@@ -38,7 +38,7 @@ export function StepperProgress({ steps, markers: customMarkers }: StepperProgre
           const markerColor = step.completed ? "green" : step.current ? "cyan" : "gray";
 
           return (
-            <Fragment key={step.name}>
+            <Fragment key={step.id}>
               {/* Leading segment (except for first step) */}
               {!isFirst && <Text color={lineColor}>{"━".repeat(SEGMENT_WIDTH)}</Text>}
               {/* Marker */}
@@ -54,11 +54,15 @@ export function StepperProgress({ steps, markers: customMarkers }: StepperProgre
       <Box>
         {steps.map((step, idx) => {
           const isFirst = idx === 0;
-          // Calculate width: marker width + segment width (if not first)
-          const width = isFirst ? markers.completed.length : SEGMENT_WIDTH + markers.completed.length;
+          // Mirror the marker actually rendered above, since markers can differ in width per
+          // state (the defaults are " ✓ " = 3 wide vs ● / ○ = 1). Using a shared width here
+          // makes the label row drift away from the marker row as steps complete.
+          // minWidth (not width) so a label longer than its column overflows instead of wrapping.
+          const marker = step.completed ? markers.completed : step.current ? markers.current : markers.pending;
+          const width = isFirst ? marker.length : SEGMENT_WIDTH + marker.length;
 
           return (
-            <Box key={step.name} width={width} justifyContent="center">
+            <Box key={step.id} minWidth={width} flexShrink={0} justifyContent="center">
               <Text
                 color={step.completed ? "green" : step.current ? "cyan" : "gray"}
                 bold={step.current}

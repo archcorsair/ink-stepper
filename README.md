@@ -76,8 +76,10 @@ Main container component that orchestrates step navigation.
 | `onCancel` | `() => void` | - | Called when canceling (Escape on first step or `cancel()`) |
 | `onStepChange` | `(step: number) => void` | - | Called when current step changes (zero-based index) |
 | `onEnterStep` | `(step: number) => void` | - | Called after entering a step |
-| `onExitStep` | `(step: number) => void \| boolean \| Promise<boolean>` | - | Called before leaving a step (return `false` to cancel) |
+| `onExitStep` | `(step: number) => void \| boolean \| Promise<void \| boolean>` | - | Called before leaving a step (return `false` to cancel; no return value needed for side-effect-only handlers) |
+| `onError` | `(error: unknown) => void` | - | Called when an async `canProceed` or `onExitStep` throws or rejects. Navigation is blocked either way; without this prop the error is logged via `console.error` |
 | `step` | `number` | - | Controlled step index (zero-based) |
+| `initialStep` | `number` | `0` | Starting step index for uncontrolled mode. Ignored when `step` is provided |
 | `keyboardNav` | `boolean` | `true` | Enable Enter/Escape navigation |
 | `showProgress` | `boolean` | `true` | Show the progress bar |
 | `renderProgress` | `(ctx: ProgressContext) => ReactNode` | - | Custom progress bar renderer |
@@ -101,7 +103,7 @@ Context passed to step content when using the render function pattern:
 interface StepContext {
   goNext: () => void;           // Navigate to next step (respects canProceed)
   goBack: () => void;           // Navigate to previous step
-  goTo: (step: number) => void; // Jump to specific step (zero-based)
+  goTo: (step: number) => void; // Jump to specific step (zero-based, skips canProceed)
   cancel: () => void;           // Cancel the wizard
   currentStep: number;          // Current step index (zero-based)
   totalSteps: number;           // Total number of steps
@@ -111,6 +113,13 @@ interface StepContext {
 }
 ```
 
+`goTo` clamps the index to the valid range and fires the full lifecycle
+(`onExitStep` → `onStepChange` → `onEnterStep`), so returning `false` from `onExitStep` cancels the
+jump. Unlike `goNext`, it deliberately skips the current step's `canProceed` check - it is a raw jump.
+
+`goNext`, `goBack` and `goTo` are all no-ops while async validation is in flight or while navigation is
+disabled (see [Input Coordination](#input-coordination)).
+
 ### ProgressContext
 
 Context passed to custom progress bar renderer:
@@ -119,6 +128,7 @@ Context passed to custom progress bar renderer:
 interface ProgressContext {
   currentStep: number;
   steps: Array<{
+    id: string;      // Stable unique id - safe to use as a React key
     name: string;
     completed: boolean;
     current: boolean;
@@ -133,6 +143,9 @@ By default, keyboard navigation is enabled:
 - **Escape** - Go back (or cancel if on first step)
 
 Disable with `keyboardNav={false}`.
+
+Keys are ignored while async validation is running or while navigation has been disabled via
+`useStepperInput`.
 
 ## Validation
 
@@ -188,7 +201,24 @@ function App() {
 }
 ```
 
-The `isValidating` flag in StepContext is `true` while async validation is running, allowing you to show loading states.
+The `isValidating` flag in StepContext is `true` while async validation is running, allowing you to show loading states. Navigation calls are ignored while it is `true`.
+
+### Errors
+
+If an async `canProceed` or `onExitStep` throws or rejects, navigation is blocked and the error is
+handed to the optional `onError` prop:
+
+```tsx
+<Stepper
+  onComplete={handleComplete}
+  onError={(error) => setBanner(String(error))}
+>
+  ...
+</Stepper>
+```
+
+Without `onError`, the error is logged via `console.error`. Either way the rejection is caught, so it
+never escapes as an unhandled rejection that would terminate the host process.
 
 ## Lifecycle Hooks
 
@@ -203,16 +233,16 @@ Execute logic when entering or leaving steps:
     analytics.track(`entered_step_${step}`);
   }}
   onExitStep={async (step) => {
-    // Save draft before leaving
+    // Save draft before leaving - no return value needed
     await saveDraft(step);
-    return true; // Allow navigation
   }}
 >
   ...
 </Stepper>
 ```
 
-`onExitStep` can return `false` (sync or async) to cancel navigation:
+`onExitStep` returns `void | boolean | Promise<void | boolean>`. Only an explicit `false` cancels
+navigation - side-effect-only handlers can return nothing:
 
 ```tsx
 <Stepper
@@ -227,6 +257,10 @@ Execute logic when entering or leaving steps:
   ...
 </Stepper>
 ```
+
+The lifecycle fires for `goNext`, `goBack` and `goTo` alike: `onExitStep` → `onStepChange` →
+`onEnterStep`. It does **not** fire when the Stepper silently repairs the active index after steps are
+added or removed elsewhere in the list - the user did not navigate, so no callback runs.
 
 ## Input Coordination
 
@@ -252,6 +286,23 @@ function EmailInput() {
 
 This prevents Enter from advancing the step while the user is typing.
 
+### Re-enable before navigating
+
+`goNext()`, `goBack()` and `goTo()` are no-ops while navigation is disabled. If your submit handler
+navigates, call `enableNavigation()` **before** the navigation call:
+
+```tsx
+const { disableNavigation, enableNavigation } = useStepperInput();
+
+const handleSubmit = () => {
+  enableNavigation(); // must come first
+  goNext();           // silently does nothing if navigation is still disabled
+};
+```
+
+Getting this order wrong fails silently - the Enter key simply appears dead. See
+[`examples/wizard.tsx`](./examples/wizard.tsx) (`NameStep`) for a working implementation.
+
 ## Controlled Mode
 
 For external state management, use the `step` prop:
@@ -273,7 +324,10 @@ function App() {
 }
 ```
 
-## Wrapped & Nested Steps
+In controlled mode the `step` prop wins: `initialStep` is ignored, and navigation calls report the new
+index through `onStepChange` without moving the Stepper until you update `step` yourself.
+
+## Wrapped & Conditional Steps
 
 Steps can be wrapped in custom components, fragments, or conditional logic:
 
@@ -291,8 +345,26 @@ const StepGroup = ({ children }) => <>{children}</>;
       <Text>Conditional step</Text>
     </Step>
   )}
+  <Step name="Review">
+    <Text>Always last</Text>
+  </Step>
 </Stepper>
 ```
+
+Steps are ordered by their position in the element tree, not by when they mounted: a step that toggles
+on after the initial render slots into its JSX position (`Optional` above lands between `Wrapped` and
+`Review`, never at the end).
+
+In uncontrolled mode the user stays on the *same step* across such changes - the active step is pinned
+by identity, so inserting or removing a step elsewhere in the list does not move them. These repairs are
+silent: `onStepChange`, `onEnterStep` and `onExitStep` do not fire for them. If the active step itself
+is removed, the index clamps to the last remaining step.
+
+In controlled mode the parent owns the index, so inserting a step before the current index changes which
+step that index refers to. Update your own state if you want to keep the user in place.
+
+**Limitation:** a `Step` must not be nested inside another `Step`. Wrapper components, fragments and
+conditionals around a `Step` are all fine.
 
 ## Custom Progress Bar
 
@@ -309,7 +381,7 @@ Customize the progress bar markers without replacing the entire component:
 </Stepper>
 ```
 
-Default markers: `✓` (completed), `●` (current), `○` (pending)
+Default markers: `" ✓ "` (completed, padded to 3 characters), `●` (current), `○` (pending)
 
 ### Custom Renderer
 
@@ -319,14 +391,20 @@ Full control over progress bar rendering:
 <Stepper
   onComplete={handleComplete}
   renderProgress={({ currentStep, steps }) => (
-    <Text>
-      Step {currentStep + 1} of {steps.length}: {steps[currentStep].name}
-    </Text>
+    <Box>
+      {steps.map((step) => (
+        <Text key={step.id} color={step.current ? "cyan" : "gray"}>
+          {step.name}{" "}
+        </Text>
+      ))}
+    </Box>
   )}
 >
   ...
 </Stepper>
 ```
+
+Each entry carries a stable `id` - use it as the React key, since step names are not guaranteed unique.
 
 ## Advanced: useStepperContext
 
@@ -338,6 +416,8 @@ import { useStepperContext } from "ink-stepper";
 function CustomStepContent() {
   const { stepContext, currentStepId } = useStepperContext();
 
+  if (!stepContext) return null; // null when no step is active
+
   return (
     <Box>
       <Text>Step {stepContext.currentStep + 1}</Text>
@@ -346,6 +426,8 @@ function CustomStepContent() {
   );
 }
 ```
+
+The hook throws if called outside a `<Stepper>`.
 
 ## Exports
 
@@ -368,6 +450,21 @@ export type {
   UseStepperInputReturn,
 } from "ink-stepper";
 ```
+
+## Example
+
+A runnable wizard that exercises the whole API lives in [`examples/wizard.tsx`](./examples/wizard.tsx):
+
+```bash
+bun run example
+
+# start on a specific step
+INITIAL_STEP=2 bun run example
+```
+
+It covers plain and render-function steps, a text input coordinated through `useStepperInput`, async
+`canProceed` with `isValidating` and a throwing validator routed to `onError`, a conditional step that
+appears in tree position, and a `goTo` jump - with every lifecycle callback printed to an event log.
 
 ## License
 

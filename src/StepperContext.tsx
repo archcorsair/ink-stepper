@@ -15,8 +15,8 @@ export interface RegisteredStep {
    */
   canProceed: boolean | (() => boolean | Promise<boolean>);
   /**
-   * Sort order for the step (based on mount order).
-   * Ensures deterministic step ordering.
+   * Sort order for the step, claimed from the parent Stepper's counter.
+   * Reflects the step's position in the element tree, not the time it mounted.
    */
   order: number;
 }
@@ -42,6 +42,19 @@ export interface StepperContextValue {
   enableNavigation: () => void;
   /** Whether navigation is currently disabled */
   isNavigationDisabled: boolean;
+  /**
+   * Claim the next sort order slot from the Stepper's counter.
+   *
+   * Steps claim in layout-effect order, which for non-nested siblings equals tree order.
+   * @internal
+   */
+  claimOrder: () => number;
+  /**
+   * Bumped by the Stepper whenever a new step id appears, forcing every Step to re-claim
+   * its order against a freshly reset counter so tree order is restored.
+   * @internal
+   */
+  orderGeneration: number;
 }
 
 /**

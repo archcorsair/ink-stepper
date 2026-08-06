@@ -43,6 +43,38 @@ const checkServer = async () => {
 
 When validation is in progress:
 1. `isValidating` (from context) becomes `true`.
-2. Navigation is locked.
+2. Navigation is locked — `goNext()`, `goBack()` and `goTo()` are no-ops, as are the Enter/Escape keys.
 3. If the promise resolves to `true`, the stepper advances.
 4. If `false`, it stays on the current step.
+
+## Error Handling
+
+An async validator can also fail outright — the network call rejects, the server returns garbage. If a `canProceed` (or an [`onExitStep`](/guide/lifecycle)) callback throws or rejects, the Stepper catches it, blocks the navigation, and reports it through the optional `onError` prop:
+
+```tsx
+const checkServer = async () => {
+  const response = await fetch('/api/validate'); // may reject
+  return response.ok;
+};
+
+function App() {
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <Stepper onComplete={handleComplete} onError={(err) => setError(String(err))}>
+      <Step name="Server Check" canProceed={checkServer}>
+        {() => (
+          <Box flexDirection="column">
+            <Text>Press Enter to validate.</Text>
+            {error && <Text color="red">{error}</Text>}
+          </Box>
+        )}
+      </Step>
+    </Stepper>
+  );
+}
+```
+
+`onError` receives the thrown value as `unknown`. If you omit the prop, the error is logged with `console.error` instead. Either way the rejection is handled, so it never escapes as an unhandled rejection — which would otherwise terminate the host process.
+
+The user stays on the current step after an error, so they can retry.

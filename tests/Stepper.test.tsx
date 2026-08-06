@@ -1,8 +1,8 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, mock, spyOn, test } from "bun:test";
 import { Text } from "ink";
 import { render } from "ink-testing-library";
 import type React from "react";
-import { Step, Stepper, useStepperInput } from "../src";
+import { type ProgressContext, Step, type StepContext, Stepper, useStepperInput } from "../src";
 import { StepperContext } from "../src/StepperContext";
 
 describe("Stepper", () => {
@@ -387,7 +387,7 @@ describe("Stepper", () => {
   test("goNext waits for async canProceed", async () => {
     const onComplete = mock(() => {});
     let capturedGoNext: (() => void) | undefined;
-    let resolveValidation: (value: boolean) => void;
+    let resolveValidation: ((value: boolean) => void) | undefined;
 
     const asyncValidator = () =>
       new Promise<boolean>((resolve) => {
@@ -466,7 +466,7 @@ describe("Stepper", () => {
   });
 
   test("calls onExitStep and onEnterStep during navigation", async () => {
-    const onExitStep = mock(() => {});
+    const onExitStep = mock((_step: number) => undefined);
     const onEnterStep = mock(() => {});
     let capturedGoNext: (() => void) | undefined;
 
@@ -541,7 +541,7 @@ describe("Stepper", () => {
 
   test("stepContext.isValidating is exposed for loading states", async () => {
     let capturedContext: { goNext: () => void; isValidating: boolean } | undefined;
-    let resolveValidation: () => void;
+    let resolveValidation: (() => void) | undefined;
     const validatingStates: boolean[] = [];
 
     const asyncValidator = () =>
@@ -642,5 +642,714 @@ describe("Stepper", () => {
     );
 
     expect(inputHook?.isNavigationDisabled).toBe(false);
+  });
+
+  test("async canProceed rejection is reported to onError and blocks navigation", async () => {
+    const failure = new Error("validation exploded");
+    const onError = mock((_error: unknown) => {});
+    let capturedGoNext: (() => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}} onError={onError}>
+        <Step name="One" canProceed={() => Promise.reject(failure)}>
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(failure);
+    expect(lastFrame()).toContain("First");
+    expect(lastFrame()).not.toContain("Second");
+  });
+
+  test("async canProceed rejection without onError does not crash the host", async () => {
+    const consoleError = spyOn(console, "error").mockImplementation(() => {});
+    let capturedGoNext: (() => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="One" canProceed={() => Promise.reject(new Error("boom"))}>
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(consoleError).toHaveBeenCalled();
+    expect(lastFrame()).toContain("First");
+    expect(lastFrame()).not.toContain("Second");
+
+    consoleError.mockRestore();
+  });
+
+  test("onExitStep throwing blocks navigation and reports to onError", async () => {
+    const failure = new Error("exit hook exploded");
+    const onError = mock((_error: unknown) => {});
+    let capturedGoNext: (() => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper
+        onComplete={() => {}}
+        onError={onError}
+        onExitStep={() => {
+          throw failure;
+        }}
+      >
+        <Step name="One">
+          {({ goNext }) => {
+            capturedGoNext = goNext;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(onError).toHaveBeenCalledWith(failure);
+    expect(lastFrame()).toContain("First");
+    expect(lastFrame()).not.toContain("Second");
+  });
+
+  test("navigation is a no-op while validation is in flight", async () => {
+    const onCancel = mock(() => {});
+    let capturedGoNext: (() => void) | undefined;
+    let capturedGoBack: (() => void) | undefined;
+
+    // Never resolves - validation stays in flight for the duration of the test
+    const hangingValidator = () => new Promise<boolean>(() => {});
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}} onCancel={onCancel} initialStep={1}>
+        <Step name="One">
+          <Text>First</Text>
+        </Step>
+        <Step name="Two" canProceed={hangingValidator}>
+          {({ goNext, goBack }) => {
+            capturedGoNext = goNext;
+            capturedGoBack = goBack;
+            return <Text>Second</Text>;
+          }}
+        </Step>
+        <Step name="Three">
+          <Text>Third</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    await new Promise((r) => setTimeout(r, 10));
+    expect(lastFrame()).toContain("Second");
+
+    // Start validation, then try to navigate away while it is pending
+    capturedGoNext?.();
+    capturedGoBack?.();
+    capturedGoNext?.();
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(lastFrame()).toContain("Second");
+    expect(lastFrame()).not.toContain("First");
+    expect(lastFrame()).not.toContain("Third");
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  test("goTo fires onExitStep, onStepChange and onEnterStep", async () => {
+    const onExitStep = mock((_step: number) => undefined);
+    const onStepChange = mock((_step: number) => {});
+    const onEnterStep = mock((_step: number) => {});
+    let capturedGoTo: ((step: number) => void) | undefined;
+
+    render(
+      <Stepper onComplete={() => {}} onExitStep={onExitStep} onStepChange={onStepChange} onEnterStep={onEnterStep}>
+        <Step name="One">
+          {({ goTo }) => {
+            capturedGoTo = goTo;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+        <Step name="Three">
+          <Text>Third</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoTo?.(2);
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(onExitStep).toHaveBeenCalledWith(0);
+    expect(onStepChange).toHaveBeenCalledWith(2);
+    expect(onEnterStep).toHaveBeenCalledWith(2);
+  });
+
+  test("onExitStep returning false cancels goTo", async () => {
+    let capturedGoTo: ((step: number) => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}} onExitStep={() => false}>
+        <Step name="One">
+          {({ goTo }) => {
+            capturedGoTo = goTo;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoTo?.(1);
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(lastFrame()).toContain("First");
+    expect(lastFrame()).not.toContain("Second");
+  });
+
+  test("goTo skips canProceed (raw jump)", async () => {
+    let capturedGoTo: ((step: number) => void) | undefined;
+
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="One" canProceed={false}>
+          {({ goTo }) => {
+            capturedGoTo = goTo;
+            return <Text>First</Text>;
+          }}
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    capturedGoTo?.(1);
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(lastFrame()).toContain("Second");
+  });
+
+  test("initialStep starts on the given step", async () => {
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}} initialStep={1}>
+        <Step name="One">
+          <Text>First Content</Text>
+        </Step>
+        <Step name="Two">
+          <Text>Second Content</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(lastFrame()).toContain("Second Content");
+    expect(lastFrame()).not.toContain("First Content");
+  });
+
+  test("renders mixed-width custom markers without breaking the layout", async () => {
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}} markers={{ completed: "[done]", current: "»", pending: "·" }} initialStep={1}>
+        <Step name="Alpha">
+          <Text>A</Text>
+        </Step>
+        <Step name="Beta">
+          <Text>B</Text>
+        </Step>
+        <Step name="Gamma">
+          <Text>C</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    await new Promise((r) => setTimeout(r, 10));
+
+    const frame = lastFrame() ?? "";
+    expect(frame).toContain("Alpha");
+    expect(frame).toContain("Beta");
+    expect(frame).toContain("Gamma");
+    expect(frame).toContain("[done]");
+    expect(frame).toContain("»");
+    expect(frame).toContain("·");
+  });
+
+  test("progress context exposes stable unique step ids", async () => {
+    let captured: ProgressContext | undefined;
+
+    render(
+      <Stepper
+        onComplete={() => {}}
+        renderProgress={(ctx) => {
+          captured = ctx;
+          return <Text>Progress</Text>;
+        }}
+      >
+        <Step name="Same">
+          <Text>First</Text>
+        </Step>
+        <Step name="Same">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    await new Promise((r) => setTimeout(r, 10));
+
+    const ids = captured?.steps.map((s) => s.id) ?? [];
+    expect(ids).toHaveLength(2);
+    expect(ids.every((id) => typeof id === "string" && id.length > 0)).toBe(true);
+    expect(new Set(ids).size).toBe(2);
+  });
+});
+
+describe("Stepper - dynamic step ordering", () => {
+  /** Ordering repairs converge over a couple of commits; give them a tick to settle. */
+  const settle = () => new Promise((r) => setTimeout(r, 20));
+
+  test("late-mounted middle step sorts by tree position, not by mount time", async () => {
+    let ctx: StepContext | undefined;
+
+    const view = (show: boolean) => (
+      <Stepper onComplete={() => {}}>
+        <Step name="AAA">
+          {(c) => {
+            ctx = c;
+            return <Text>first-body</Text>;
+          }}
+        </Step>
+        {show && (
+          <Step name="MID">
+            <Text>mid-body</Text>
+          </Step>
+        )}
+        <Step name="ZZZ">
+          <Text>last-body</Text>
+        </Step>
+      </Stepper>
+    );
+
+    const { lastFrame, rerender } = render(view(false));
+    await settle();
+
+    rerender(view(true));
+    await settle();
+
+    const frame = lastFrame() ?? "";
+    expect(frame.indexOf("AAA")).toBeLessThan(frame.indexOf("MID"));
+    expect(frame.indexOf("MID")).toBeLessThan(frame.indexOf("ZZZ"));
+
+    ctx?.goNext();
+    await settle();
+
+    expect(lastFrame()).toContain("mid-body");
+    expect(lastFrame()).not.toContain("last-body");
+  });
+
+  test("late-mounted step inside a wrapper still sorts by tree position", async () => {
+    const Wrapper = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+    let ctx: StepContext | undefined;
+
+    const view = (show: boolean) => (
+      <Stepper onComplete={() => {}}>
+        <Step name="AAA">
+          {(c) => {
+            ctx = c;
+            return <Text>first-body</Text>;
+          }}
+        </Step>
+        {show && (
+          <Wrapper>
+            <Step name="MID">
+              <Text>mid-body</Text>
+            </Step>
+          </Wrapper>
+        )}
+        <Step name="ZZZ">
+          <Text>last-body</Text>
+        </Step>
+      </Stepper>
+    );
+
+    const { lastFrame, rerender } = render(view(false));
+    await settle();
+
+    rerender(view(true));
+    await settle();
+
+    const frame = lastFrame() ?? "";
+    expect(frame.indexOf("AAA")).toBeLessThan(frame.indexOf("MID"));
+    expect(frame.indexOf("MID")).toBeLessThan(frame.indexOf("ZZZ"));
+
+    ctx?.goNext();
+    await settle();
+
+    expect(lastFrame()).toContain("mid-body");
+  });
+
+  test("active step stays put when a step is inserted before it", async () => {
+    let ctx: StepContext | undefined;
+
+    const view = (show: boolean) => (
+      <Stepper onComplete={() => {}}>
+        <Step name="AAA">
+          {(c) => {
+            ctx = c;
+            return <Text>first-body</Text>;
+          }}
+        </Step>
+        {show && (
+          <Step name="MID">
+            <Text>mid-body</Text>
+          </Step>
+        )}
+        <Step name="ZZZ">
+          {(c) => {
+            ctx = c;
+            return <Text>last-body</Text>;
+          }}
+        </Step>
+      </Stepper>
+    );
+
+    const { lastFrame, rerender } = render(view(false));
+    await settle();
+
+    // Navigate to ZZZ (index 1 of 2)
+    ctx?.goNext();
+    await settle();
+    expect(lastFrame()).toContain("last-body");
+
+    rerender(view(true));
+    await settle();
+
+    // Still on ZZZ, now index 2 of 3
+    expect(lastFrame()).toContain("last-body");
+    expect(lastFrame()).not.toContain("mid-body");
+    expect(ctx?.totalSteps).toBe(3);
+    expect(ctx?.currentStep).toBe(2);
+
+    ctx?.goBack();
+    await settle();
+
+    expect(lastFrame()).toContain("mid-body");
+  });
+
+  test("inserting a step after the current one leaves the current step untouched", async () => {
+    let ctx: StepContext | undefined;
+
+    const view = (show: boolean) => (
+      <Stepper onComplete={() => {}}>
+        <Step name="AAA">
+          {(c) => {
+            ctx = c;
+            return <Text>first-body</Text>;
+          }}
+        </Step>
+        <Step name="ZZZ">
+          <Text>last-body</Text>
+        </Step>
+        {show && (
+          <Step name="EXTRA">
+            <Text>extra-body</Text>
+          </Step>
+        )}
+      </Stepper>
+    );
+
+    const { lastFrame, rerender } = render(view(false));
+    await settle();
+
+    rerender(view(true));
+    await settle();
+
+    expect(lastFrame()).toContain("first-body");
+    expect(ctx?.currentStep).toBe(0);
+    expect(ctx?.totalSteps).toBe(3);
+
+    const frame = lastFrame() ?? "";
+    expect(frame.indexOf("AAA")).toBeLessThan(frame.indexOf("ZZZ"));
+    expect(frame.indexOf("ZZZ")).toBeLessThan(frame.indexOf("EXTRA"));
+  });
+
+  test("removing a step before the active one keeps the active step's content", async () => {
+    let ctx: StepContext | undefined;
+
+    const view = (show: boolean) => (
+      <Stepper onComplete={() => {}}>
+        {show && (
+          <Step name="AAA">
+            {(c) => {
+              ctx = c;
+              return <Text>first-body</Text>;
+            }}
+          </Step>
+        )}
+        <Step name="MID">
+          {(c) => {
+            ctx = c;
+            return <Text>mid-body</Text>;
+          }}
+        </Step>
+        <Step name="ZZZ">
+          {(c) => {
+            ctx = c;
+            return <Text>last-body</Text>;
+          }}
+        </Step>
+      </Stepper>
+    );
+
+    const { lastFrame, rerender } = render(view(true));
+    await settle();
+
+    ctx?.goTo(2);
+    await settle();
+    expect(lastFrame()).toContain("last-body");
+
+    rerender(view(false));
+    await settle();
+
+    expect(lastFrame()).toContain("last-body");
+    expect(ctx?.currentStep).toBe(1);
+    expect(ctx?.totalSteps).toBe(2);
+  });
+
+  test("removing the active step clamps to the last remaining step", async () => {
+    let ctx: StepContext | undefined;
+
+    const view = (show: boolean) => (
+      <Stepper onComplete={() => {}}>
+        <Step name="AAA">
+          {(c) => {
+            ctx = c;
+            return <Text>first-body</Text>;
+          }}
+        </Step>
+        {show && (
+          <Step name="ZZZ">
+            {(c) => {
+              ctx = c;
+              return <Text>last-body</Text>;
+            }}
+          </Step>
+        )}
+      </Stepper>
+    );
+
+    const { lastFrame, rerender } = render(view(true));
+    await settle();
+
+    ctx?.goNext();
+    await settle();
+    expect(lastFrame()).toContain("last-body");
+
+    rerender(view(false));
+    await settle();
+
+    expect(lastFrame()).toContain("first-body");
+    expect(lastFrame()).not.toContain("last-body");
+  });
+
+  test("index repairs do not fire step lifecycle callbacks", async () => {
+    const onStepChange = mock((_step: number) => {});
+    const onEnterStep = mock((_step: number) => {});
+    const onExitStep = mock((_step: number) => undefined);
+    let ctx: StepContext | undefined;
+
+    const view = (show: boolean) => (
+      <Stepper onComplete={() => {}} onStepChange={onStepChange} onEnterStep={onEnterStep} onExitStep={onExitStep}>
+        <Step name="AAA">
+          {(c) => {
+            ctx = c;
+            return <Text>first-body</Text>;
+          }}
+        </Step>
+        {show && (
+          <Step name="MID">
+            <Text>mid-body</Text>
+          </Step>
+        )}
+        <Step name="ZZZ">
+          {(c) => {
+            ctx = c;
+            return <Text>last-body</Text>;
+          }}
+        </Step>
+      </Stepper>
+    );
+
+    const { lastFrame, rerender } = render(view(false));
+    await settle();
+
+    // Move to ZZZ, then reset the mocks so only repair-driven calls can show up
+    ctx?.goNext();
+    await settle();
+    onStepChange.mockClear();
+    onEnterStep.mockClear();
+    onExitStep.mockClear();
+
+    // Insertion before the active step: repaired silently
+    rerender(view(true));
+    await settle();
+    expect(lastFrame()).toContain("last-body");
+    expect(onStepChange).not.toHaveBeenCalled();
+    expect(onEnterStep).not.toHaveBeenCalled();
+    expect(onExitStep).not.toHaveBeenCalled();
+
+    // Removal before the active step: also silent
+    rerender(view(false));
+    await settle();
+    expect(lastFrame()).toContain("last-body");
+    expect(onStepChange).not.toHaveBeenCalled();
+    expect(onEnterStep).not.toHaveBeenCalled();
+    expect(onExitStep).not.toHaveBeenCalled();
+
+    // Real navigation still fires the lifecycle
+    ctx?.goBack();
+    await settle();
+    expect(onExitStep).toHaveBeenCalledWith(1);
+    expect(onStepChange).toHaveBeenCalledWith(0);
+    expect(onEnterStep).toHaveBeenCalledWith(0);
+  });
+
+  test("inline canProceed identity churn does not corrupt step order", async () => {
+    let ctx: StepContext | undefined;
+
+    const view = () => (
+      <Stepper onComplete={() => {}}>
+        <Step name="AAA">
+          {(c) => {
+            ctx = c;
+            return <Text>first-body</Text>;
+          }}
+        </Step>
+        <Step name="MID" canProceed={() => true}>
+          {(c) => {
+            ctx = c;
+            return <Text>mid-body</Text>;
+          }}
+        </Step>
+        <Step name="ZZZ">
+          <Text>last-body</Text>
+        </Step>
+      </Stepper>
+    );
+
+    const { lastFrame, rerender } = render(view());
+    await settle();
+
+    for (let i = 0; i < 3; i++) {
+      rerender(view());
+      await settle();
+    }
+
+    const frame = lastFrame() ?? "";
+    expect(frame.indexOf("AAA")).toBeLessThan(frame.indexOf("MID"));
+    expect(frame.indexOf("MID")).toBeLessThan(frame.indexOf("ZZZ"));
+
+    ctx?.goNext();
+    await settle();
+    expect(lastFrame()).toContain("mid-body");
+
+    ctx?.goNext();
+    await settle();
+    expect(lastFrame()).toContain("last-body");
+  });
+
+  test("toggling a step off and on again restores tree order", async () => {
+    let ctx: StepContext | undefined;
+
+    const view = (show: boolean) => (
+      <Stepper onComplete={() => {}}>
+        <Step name="AAA">
+          {(c) => {
+            ctx = c;
+            return <Text>first-body</Text>;
+          }}
+        </Step>
+        {show && (
+          <Step name="MID">
+            <Text>mid-body</Text>
+          </Step>
+        )}
+        <Step name="ZZZ">
+          <Text>last-body</Text>
+        </Step>
+      </Stepper>
+    );
+
+    const { lastFrame, rerender } = render(view(true));
+    await settle();
+
+    rerender(view(false));
+    await settle();
+    expect(lastFrame()).not.toContain("MID");
+
+    rerender(view(true));
+    await settle();
+
+    const frame = lastFrame() ?? "";
+    expect(frame.indexOf("AAA")).toBeLessThan(frame.indexOf("MID"));
+    expect(frame.indexOf("MID")).toBeLessThan(frame.indexOf("ZZZ"));
+
+    ctx?.goNext();
+    await settle();
+    expect(lastFrame()).toContain("mid-body");
+  });
+
+  test("controlled mode keeps the parent's index while ordering stays correct", async () => {
+    const view = (show: boolean) => (
+      <Stepper onComplete={() => {}} step={1}>
+        <Step name="AAA">
+          <Text>first-body</Text>
+        </Step>
+        {show && (
+          <Step name="MID">
+            <Text>mid-body</Text>
+          </Step>
+        )}
+        <Step name="ZZZ">
+          <Text>last-body</Text>
+        </Step>
+      </Stepper>
+    );
+
+    const { lastFrame, rerender } = render(view(false));
+    await settle();
+    expect(lastFrame()).toContain("last-body");
+
+    rerender(view(true));
+    await settle();
+
+    const frame = lastFrame() ?? "";
+    expect(frame.indexOf("AAA")).toBeLessThan(frame.indexOf("MID"));
+    expect(frame.indexOf("MID")).toBeLessThan(frame.indexOf("ZZZ"));
+
+    // The parent owns the index, so index 1 - now MID - is what renders
+    expect(lastFrame()).toContain("mid-body");
+    expect(lastFrame()).not.toContain("last-body");
   });
 });

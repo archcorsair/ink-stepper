@@ -20,9 +20,11 @@ You can change the symbols used for completed, current, and pending steps using 
 ```
 
 **Defaults:**
-- Completed: `✓`
+- Completed: `" ✓ "` (padded to 3 characters)
 - Current: `●`
 - Pending: `○`
+
+Markers may differ in width from one another — the default set already does. The progress bar sizes each label column from the marker actually rendered for that step, so the labels stay aligned with their markers as steps complete.
 
 ## Custom Progress Renderer
 
@@ -35,9 +37,13 @@ For complete control over the progress bar, use the `renderProgress` prop. This 
       <Text>
         Step {currentStep + 1} of {steps.length}
       </Text>
-      <Text color="green">
-        {steps.map(s => s.completed ? '■' : '□').join(' ')}
-      </Text>
+      <Box>
+        {steps.map(step => (
+          <Text key={step.id} color={step.completed ? 'green' : 'gray'}>
+            {step.completed ? '■' : '□'}{' '}
+          </Text>
+        ))}
+      </Box>
     </Box>
   )}
   onComplete={handleComplete}
@@ -50,14 +56,22 @@ The `renderProgress` function receives a `ProgressContext` object:
 
 ```ts
 interface ProgressContext {
+  /** Current step index (zero-based) */
   currentStep: number;
+  /** Array of step metadata */
   steps: Array<{
+    /** Stable unique identifier for the step - safe to use as a React key */
+    id: string;
     name: string;
     completed: boolean;
     current: boolean;
   }>;
 }
 ```
+
+::: tip
+Use `step.id` as the React key when mapping over `steps`. Two steps are allowed to share a `name`, so names are not safe keys.
+:::
 
 ## Hiding the Progress Bar
 
