@@ -26,12 +26,14 @@
     "prepublishOnly": "bun run build",
     "publish:npm": "npm publish",
     "publish:jsr": "bun run build && npx jsr publish",
-    "version:patch": "bun pm version patch && bun scripts/sync-versions.ts",
-    "version:minor": "bun pm version minor && bun scripts/sync-versions.ts",
-    "version:major": "bun pm version major && bun scripts/sync-versions.ts",
     "docs:dev": "bun run --cwd docs dev",
     "docs:build": "bun run --cwd docs build",
-    "docs:preview": "bun run --cwd docs preview"
+    "docs:preview": "bun run --cwd docs preview",
+    "sync:versions": "bun scripts/sync-versions.ts",
+    "version": "bun run sync:versions && git add jsr.json",
+    "version:patch": "bun pm version patch",
+    "version:minor": "bun pm version minor",
+    "version:major": "bun pm version major"
   },
   "keywords": [
     "ink",

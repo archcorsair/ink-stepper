@@ -5,5 +5,8 @@
   "imports": {
     "ink": "npm:ink@^6.6.0",
     "react": "npm:react@^19.2.3"
+  },
+  "publish": {
+    "exclude": ["tests/", "examples/", "docs/", ".github/", "scripts/"]
   }
 }

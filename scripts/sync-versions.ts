@@ -2,8 +2,10 @@
 /**
  * Syncs the version from package.json into jsr.json.
  *
- * `bun pm version` only bumps package.json, so this keeps the JSR manifest in
- * lockstep. Wired into the `version:*` scripts; also safe to run standalone.
+ * package.json is the single source of truth. Wired into the `version` lifecycle
+ * script, which `bun pm version` runs after bumping package.json but before
+ * creating the release commit, so the synced jsr.json is staged into that commit
+ * and the tagged tree can never carry a stale version. Also safe to run standalone.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";

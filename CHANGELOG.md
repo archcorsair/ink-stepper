@@ -55,7 +55,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI now runs `typecheck` and `lint` alongside tests, and typechecks `tests/`.
 - Publish workflow gates on a `check` job, asserts the pushed tag matches both `package.json` and
   `jsr.json`, and publishes to npm before JSR.
-- `version:*` scripts sync `jsr.json` via `scripts/sync-versions.ts`.
+- Version bumps sync `jsr.json` from `package.json` via the npm-style `version` lifecycle script
+  (`scripts/sync-versions.ts` + `git add`), so the release commit that `bun pm version` tags always
+  carries both manifests in agreement.
+- `jsr.json` now excludes `tests/`, `examples/`, `docs/`, `.github/`, and `scripts/` from the JSR
+  package.
+- Publish workflow verifies after publishing that both npm and JSR actually serve the tagged
+  version, failing the run otherwise.
 - Package metadata: `author`, `homepage`, `bugs`, and `sideEffects` (scoped to `./src/**`, which marks
   every published file under `dist/` as side-effect free for consumer tree-shaking).
 - Populated the previously empty `.editorconfig`.
