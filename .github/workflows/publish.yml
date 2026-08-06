@@ -47,6 +47,11 @@ jobs:
       - name: Build
         run: bun run build
 
+      # Catches JSR packaging/resolution errors (e.g. an import range that the
+      # installed node_modules can't satisfy) before anything publishes.
+      - name: JSR publish dry run
+        run: bunx jsr publish --dry-run
+
   publish:
     name: Publish
     needs: check

@@ -44,6 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The `ink` peer range is widened to `^6.6.0 || ^7.0.0` - the test suite passes against ink 7.1.1.
+  The JSR import map pins `npm:ink@^7.0.0` (Deno npm specifiers cannot express compound ranges, and
+  JSR validates imports against the installed ink 7); a JSR publish dry run now gates the publish
+  workflow so an unsatisfiable import range fails before anything ships.
 - Dev dependencies bumped to current versions (`@biomejs/biome` 2.5.x with a migrated config,
   `@types/bun`, `@types/react`, `bunup`) and `react-devtools-core` removed (unused; it pulled in a
   `shell-quote` version with a critical advisory). `bun audit` is clean for both the root and the
