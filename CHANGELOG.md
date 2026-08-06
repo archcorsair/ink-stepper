@@ -61,7 +61,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `jsr.json` now excludes `tests/`, `examples/`, `docs/`, `.github/`, and `scripts/` from the JSR
   package.
 - Publish workflow verifies after publishing that both npm and JSR actually serve the tagged
-  version, failing the run otherwise.
+  version, failing the run otherwise. Each registry's publish step is also guarded by an
+  already-published check, so re-running the workflow after a partial failure retries only the
+  registry that is still missing the version. The tag ↔ manifest assertion now runs in the `check`
+  job, before the credentialed publish job starts.
 - Package metadata: `author`, `homepage`, `bugs`, and `sideEffects` (scoped to `./src/**`, which marks
   every published file under `dist/` as side-effect free for consumer tree-shaking).
 - Populated the previously empty `.editorconfig`.
