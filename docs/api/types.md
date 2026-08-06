@@ -42,7 +42,7 @@ Props for the `<Stepper>` component.
 
 ```ts
 interface StepperProps {
-  /** Step elements (must be Step components) */
+  /** Step elements, plus any other content to render alongside every step */
   children: ReactNode;
   /** Called when advancing past the last step */
   onComplete: () => void;
@@ -73,6 +73,8 @@ interface StepperProps {
   markers?: StepperMarkers;
 }
 ```
+
+`children` is not restricted to `<Step>` elements. Anything else you put inside the `<Stepper>` renders on every step, which is handy for a shared header, footer, or status line.
 
 ## `StepProps`
 

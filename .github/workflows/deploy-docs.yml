@@ -32,7 +32,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Not needed if lastUpdated is not enabled
+          fetch-depth: 0 # Full history for lastUpdated timestamps
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

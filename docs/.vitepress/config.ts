@@ -5,8 +5,27 @@ import llmstxt, { copyOrDownloadAsMarkdownButtons } from "vitepress-plugin-llms"
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: "Ink Stepper",
-  description: "A robust, flexible step-by-step wizard component for Ink CLI applications.",
-  base: "/ink-stepper/", // Assuming deployment to GitHub Pages at this path
+  description: "A step-by-step wizard/stepper component for Ink terminal applications",
+  base: "/ink-stepper/",
+  lastUpdated: true,
+  sitemap: { hostname: "https://archcorsair.github.io/ink-stepper/" },
+
+  head: [
+    [
+      "link",
+      {
+        rel: "icon",
+        href: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='13' font-size='13'%3E%E2%97%89%3C/text%3E%3C/svg%3E",
+      },
+    ],
+    ["meta", { name: "theme-color", content: "#6b7280" }],
+    ["meta", { property: "og:title", content: "Ink Stepper" }],
+    [
+      "meta",
+      { property: "og:description", content: "A step-by-step wizard/stepper component for Ink terminal applications" },
+    ],
+    ["meta", { property: "og:url", content: "https://archcorsair.github.io/ink-stepper/" }],
+  ],
 
   markdown: {
     config(md) {
@@ -65,9 +84,14 @@ export default defineConfig({
       provider: "local",
     },
 
+    editLink: {
+      pattern: "https://github.com/archcorsair/ink-stepper/edit/main/docs/:path",
+      text: "Edit this page on GitHub",
+    },
+
     footer: {
       message: "Released under the MIT License.",
-      copyright: "Copyright © 2026-present",
+      copyright: "Copyright © 2026-present archcorsair",
     },
   },
 });

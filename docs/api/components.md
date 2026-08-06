@@ -10,7 +10,7 @@ The main container component.
 | :--- | :--- | :--- | :--- |
 | `onComplete` | `() => void` | **Required** | Callback fired when the user completes the final step. |
 | `children` | `ReactNode` | **Required** | The step components. |
-| `onCancel` | `() => void` | `undefined` | Callback fired when the user cancels (Escape on first step). |
+| `onCancel` | `() => void` | `undefined` | Callback fired when canceling (Escape or `goBack()` on the first step, or a `stepContext.cancel()` call). |
 | `onStepChange` | `(step: number) => void` | `undefined` | Callback fired when the active step index changes. |
 | `onEnterStep` | `(step: number) => void` | `undefined` | Callback fired after entering a new step. |
 | `onExitStep` | `(step: number) => void \| boolean \| Promise<void \| boolean>` | `undefined` | Callback fired before leaving a step. Return `false` to prevent navigation; no return value is needed otherwise. |

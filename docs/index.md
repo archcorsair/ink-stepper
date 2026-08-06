@@ -4,6 +4,15 @@
 
 ## Installation
 
+### Requirements
+
+`ink-stepper` declares its runtime as peer dependencies, so install them alongside it:
+
+- `ink` — `^6.6.0 || ^7.0.0`
+- `react` — `^19.2.3`
+
+Installing from JSR effectively requires Ink 7: the JSR package pins `npm:ink@^7.0.0` in its import map.
+
 ### [NPM](https://www.npmjs.com/package/ink-stepper)
 
 ::: code-group
@@ -89,7 +98,7 @@ function App() {
 render(<App />);
 ```
 
-Run this with `ts-node` (or `bun`) to see an interactive wizard in your terminal.
+Save it as `app.tsx` and run it with `bun app.tsx` (or `npx tsx app.tsx`) to see an interactive wizard in your terminal — both handle ESM and TSX without extra configuration.
 
 ## Try the Example
 
@@ -107,3 +116,7 @@ INITIAL_STEP=2 bun run example
 ```
 
 The source lives in [`examples/wizard.tsx`](https://github.com/archcorsair/ink-stepper/blob/main/examples/wizard.tsx).
+
+## Docs for LLMs
+
+This site publishes itself in LLM-friendly plain text: [`/llms.txt`](https://archcorsair.github.io/ink-stepper/llms.txt) for the index and [`/llms-full.txt`](https://archcorsair.github.io/ink-stepper/llms-full.txt) for every page in one file.

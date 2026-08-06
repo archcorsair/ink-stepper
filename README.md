@@ -30,8 +30,14 @@ npx jsr add @archcorsair/ink-stepper
 # pnpm
 pnpm add ink-stepper
 
+# yarn
+yarn add ink-stepper
+
 # bun
 bun add ink-stepper
+
+# deno
+deno add npm:ink-stepper
 ```
 
 ## Usage
@@ -188,11 +194,8 @@ function App() {
       <Step name="Email" canProceed={validateEmail}>
         {({ goNext, isValidating }) => (
           <Box flexDirection="column">
-            <TextInput value={email} onChange={setEmail} />
+            <TextInput value={email} onChange={setEmail} onSubmit={goNext} />
             {isValidating && <Text color="yellow">Validating...</Text>}
-            <Button onPress={goNext} disabled={isValidating}>
-              Continue
-            </Button>
           </Box>
         )}
       </Step>
@@ -358,7 +361,8 @@ on after the initial render slots into its JSX position (`Optional` above lands 
 In uncontrolled mode the user stays on the *same step* across such changes - the active step is pinned
 by identity, so inserting or removing a step elsewhere in the list does not move them. These repairs are
 silent: `onStepChange`, `onEnterStep` and `onExitStep` do not fire for them. If the active step itself
-is removed, the index clamps to the last remaining step.
+is removed, the index is kept, so the step that slides into that position becomes active; it clamps to
+the last remaining step only when the removed step was the last one.
 
 In controlled mode the parent owns the index, so inserting a step before the current index changes which
 step that index refers to. Update your own state if you want to keep the user in place.
@@ -411,17 +415,22 @@ Each entry carries a stable `id` - use it as the React key, since step names are
 For advanced use cases, access the full stepper context:
 
 ```tsx
+import { useInput } from "ink";
 import { useStepperContext } from "ink-stepper";
 
 function CustomStepContent() {
   const { stepContext, currentStepId } = useStepperContext();
+
+  useInput((input) => {
+    if (input === "n") stepContext?.goNext();
+  });
 
   if (!stepContext) return null; // null when no step is active
 
   return (
     <Box>
       <Text>Step {stepContext.currentStep + 1}</Text>
-      <Button onPress={stepContext.goNext}>Next</Button>
+      <Text dimColor>Press "n" for next</Text>
     </Box>
   );
 }

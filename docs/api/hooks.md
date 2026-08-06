@@ -20,6 +20,8 @@ const { disableNavigation, enableNavigation, isNavigationDisabled } = useStepper
 
 While navigation is disabled, `goNext()`, `goBack()` and `goTo()` are no-ops as well — not just the Enter/Escape keys. Call `enableNavigation()` **before** navigating from a submit handler, otherwise the navigation call is silently dropped. See [Input Coordination](/guide/input-coordination#re-enable-before-navigating).
 
+Like `useStepperContext` (which it calls internally), this hook throws if used outside a `<Stepper>`.
+
 ---
 
 ## `useStepperContext`

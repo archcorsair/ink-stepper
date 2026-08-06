@@ -75,7 +75,7 @@ export interface StepperMarkers {
  * Props for the Stepper component.
  */
 export interface StepperProps {
-  /** Step elements (must be Step components) */
+  /** Step elements, plus any other content to render alongside every step */
   children: ReactNode;
   /** Called when advancing past the last step */
   onComplete: () => void;

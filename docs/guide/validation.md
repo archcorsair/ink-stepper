@@ -78,3 +78,5 @@ function App() {
 `onError` receives the thrown value as `unknown`. If you omit the prop, the error is logged with `console.error` instead. Either way the rejection is handled, so it never escapes as an unhandled rejection — which would otherwise terminate the host process.
 
 The user stays on the current step after an error, so they can retry.
+
+For a live version of this, the Validate step of [`examples/wizard.tsx`](https://github.com/archcorsair/ink-stepper/blob/main/examples/wizard.tsx) arms a throwing validator when you press `e`, then routes the failure through `onError` without crashing the wizard.

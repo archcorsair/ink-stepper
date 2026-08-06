@@ -34,16 +34,24 @@ Use the `<Step>` component to define each page of your wizard. Every step needs 
 
 ### Accessing Step Context
 
-If you need to programmatically control navigation (e.g., from a custom button instead of just pressing Enter), you can use the function-as-child pattern to access `StepContext`:
+If you need to programmatically control navigation (e.g., from your own key binding instead of just pressing Enter), you can use the function-as-child pattern to access `StepContext`. Ink has no click targets, so wire the control up with `useInput`:
 
 ```tsx
+import { Box, Text, useInput } from 'ink';
+
+function NextHint({ onNext }: { onNext: () => void }) {
+  useInput((input) => {
+    if (input === 'n') onNext();
+  });
+
+  return <Text dimColor>Press "n" to continue.</Text>;
+}
+
 <Step name="Manual Control">
-  {({ goNext, goBack, isLast }) => (
+  {({ goNext }) => (
     <Box flexDirection="column">
       <Text>Custom controls:</Text>
-      <Text color="blue" onPress={goNext}>
-        [ Next > ]
-      </Text>
+      <NextHint onNext={goNext} />
     </Box>
   )}
 </Step>
@@ -60,6 +68,23 @@ The context provides:
 
 `goNext()`, `goBack()` and `goTo()` are all no-ops while validation is in flight or while navigation has been disabled via [`useStepperInput`](/guide/input-coordination).
 
+## Keyboard Navigation
+
+Keyboard navigation is on by default:
+
+- **Enter** — advance to the next step (subject to `canProceed`).
+- **Escape** — go back to the previous step; on the first step it cancels the wizard and calls `onCancel`.
+
+Turn it off with `keyboardNav={false}` if your steps handle all input themselves:
+
+```tsx
+<Stepper onComplete={handleComplete} keyboardNav={false}>
+  {/* ... */}
+</Stepper>
+```
+
+Both keys are ignored while an async `canProceed` is running and while navigation has been disabled via [`useStepperInput`](/guide/input-coordination).
+
 ## Conditional Steps
 
 Steps may be wrapped in components or rendered conditionally. They are ordered by their position in the element tree, not by the time they mounted, so a step toggled on later slots into its JSX position:
@@ -72,7 +97,7 @@ Steps may be wrapped in components or rendered conditionally. They are ordered b
 </Stepper>
 ```
 
-In uncontrolled mode the user stays on the same step when another step is inserted or removed elsewhere — the active step is tracked by identity, not by index — and no lifecycle callbacks fire for that repair. If the active step itself is removed, the index clamps to the last remaining step.
+In uncontrolled mode the user stays on the same step when another step is inserted or removed elsewhere — the active step is tracked by identity, not by index — and no lifecycle callbacks fire for that repair. If the active step itself is removed, the index is kept, so whichever step slides into that position becomes active; it only clamps to the last remaining step when the removed step was the last one.
 
 ::: warning
 A `<Step>` must not be nested inside another `<Step>`; that breaks the tree-order guarantee. Wrapper components, fragments, and conditionals around a `<Step>` are fine.
