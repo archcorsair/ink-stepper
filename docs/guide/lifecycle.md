@@ -25,21 +25,20 @@ The `onExitStep` callback is triggered *before* leaving the current step. It can
 <Stepper
   onExitStep={async (stepIndex) => {
     console.log(`Leaving step ${stepIndex}`);
-    
-    // Perform cleanup or save
-    await saveData(stepIndex);
 
-    // Return true to allow navigation, false to cancel
-    return true; 
+    // Perform cleanup or save - no return value needed
+    await saveData(stepIndex);
   }}
 >
   {/* ... */}
 </Stepper>
 ```
 
+The signature is `(step: number) => void | boolean | Promise<void | boolean>`. Only an explicit `false` cancels navigation, so a handler that just performs a side effect can return nothing.
+
 ### Preventing Navigation
 
-If `onExitStep` returns `false` (or a Promise that resolves to `false`), the navigation is cancelled, and the user remains on the current step. This applies to both `goNext()` and `goBack()`.
+If `onExitStep` returns `false` (or a Promise that resolves to `false`), the navigation is cancelled, and the user remains on the current step. This applies to `goNext()`, `goBack()` and `goTo()` alike.
 
 ```tsx
 <Stepper
@@ -54,3 +53,40 @@ If `onExitStep` returns `false` (or a Promise that resolves to `false`), the nav
   {/* ... */}
 </Stepper>
 ```
+
+## Callback Order
+
+Every user-initiated navigation runs the same sequence:
+
+```
+onExitStep(from)  →  onStepChange(to)  →  onEnterStep(to)
+```
+
+`goNext()` additionally resolves `canProceed` before any of it; if the check fails, nothing fires. Reaching the end of the wizard calls `onComplete` instead of the change/enter pair, and going back from the first step calls `onCancel`.
+
+## Programmatic Jumps with `goTo`
+
+`goTo(index)` fires the same full lifecycle as `goNext`/`goBack`, so `onExitStep` can cancel a jump by returning `false`. Two things make it different:
+
+- It **skips `canProceed`** on the current step — `goTo` is a raw jump, not a validated advance. Use it for "back to summary" style navigation, not to bypass validation on the way forward.
+- The index is **clamped** to the valid range, and a jump to the current index is a no-op (no callbacks fire).
+
+```tsx
+<Step name="Review">
+  {({ goTo }) => (
+    <Text onPress={() => goTo(0)}>Edit the first step</Text>
+  )}
+</Step>
+```
+
+Like `goNext` and `goBack`, `goTo` does nothing while async validation is in flight or while navigation is disabled via [`useStepperInput`](/guide/input-coordination).
+
+## Errors in Callbacks
+
+If `onExitStep` throws or returns a rejecting Promise, navigation is blocked and the error is passed to the `onError` prop (or logged via `console.error` when that prop is omitted). See [Validation](/guide/validation#error-handling).
+
+## Silent Index Repairs
+
+Conditional steps can appear and disappear. When that happens, the Stepper keeps the user on the same step by re-pointing the internal index at the step they were already on (or clamping, if that step itself was removed).
+
+These repairs are **not** navigation: `onExitStep`, `onStepChange` and `onEnterStep` do not fire for them. Only user-initiated `goNext()`/`goBack()`/`goTo()` calls and keyboard navigation trigger the lifecycle.

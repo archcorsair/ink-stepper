@@ -90,3 +90,20 @@ render(<App />);
 ```
 
 Run this with `ts-node` (or `bun`) to see an interactive wizard in your terminal.
+
+## Try the Example
+
+The repository ships a runnable wizard that exercises the full API — render-function steps, an input
+coordinated with `useStepperInput`, async validation with error handling, a conditional step, and a
+`goTo` jump, with every lifecycle callback logged as it fires:
+
+```bash
+git clone https://github.com/archcorsair/ink-stepper
+cd ink-stepper && bun install
+bun run example
+
+# start on a specific step
+INITIAL_STEP=2 bun run example
+```
+
+The source lives in [`examples/wizard.tsx`](https://github.com/archcorsair/ink-stepper/blob/main/examples/wizard.tsx).

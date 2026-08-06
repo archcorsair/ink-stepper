@@ -1,6 +1,6 @@
 {
   "name": "ink-stepper",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "A step-by-step wizard/stepper component for Ink terminal applications",
   "type": "module",
   "files": [
@@ -17,20 +17,23 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build": "bunup",
+    "build": "NODE_ENV=production bunup",
     "typecheck": "tsc --noEmit",
+    "example": "bun examples/wizard.tsx",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "test": "bun test --only-failures",
     "prepublishOnly": "bun run build",
     "publish:npm": "npm publish",
     "publish:jsr": "bun run build && npx jsr publish",
-    "version:patch": "bun pm version patch",
-    "version:minor": "bun pm version minor",
-    "version:major": "bun pm version major",
     "docs:dev": "bun run --cwd docs dev",
     "docs:build": "bun run --cwd docs build",
-    "docs:preview": "bun run --cwd docs preview"
+    "docs:preview": "bun run --cwd docs preview",
+    "sync:versions": "bun scripts/sync-versions.ts",
+    "version": "bun run sync:versions && git add jsr.json",
+    "version:patch": "bun pm version patch",
+    "version:minor": "bun pm version minor",
+    "version:major": "bun pm version major"
   },
   "keywords": [
     "ink",
@@ -43,23 +46,30 @@
     "onboarding",
     "steps"
   ],
-  "author": "",
+  "author": "archcorsair",
   "license": "MIT",
+  "homepage": "https://archcorsair.github.io/ink-stepper/",
+  "bugs": "https://github.com/archcorsair/ink-stepper/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/archcorsair/ink-stepper.git"
   },
+  "sideEffects": [
+    "./src/**"
+  ],
   "peerDependencies": {
-    "ink": "^6.6.0",
+    "ink": "^6.6.0 || ^7.0.0",
     "react": "^19.2.3"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.3.10",
-    "@types/bun": "latest",
-    "@types/react": "^19.2.7",
-    "bunup": "^0.16.17",
+    "@biomejs/biome": "^2.5.7",
+    "@types/bun": "^1.3.14",
+    "@types/react": "^19.2.18",
+    "bunup": "^0.16.32",
     "ink-testing-library": "^4.0.0",
-    "react-devtools-core": "^7.0.1",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "ws": "^8.21.2"
   }
 }

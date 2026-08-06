@@ -33,7 +33,9 @@ export function Stepper({
   onStepChange,
   onEnterStep,
   onExitStep,
+  onError,
   step: controlledStep,
+  initialStep,
   keyboardNav = true,
   showProgress = true,
   renderProgress,
@@ -49,12 +51,16 @@ export function Stepper({
     disableNavigation,
     enableNavigation,
     isNavigationDisabled,
+    claimOrder,
+    orderGeneration,
   } = useStepper({
     onComplete,
     onCancel,
     onStepChange,
     onEnterStep,
     onExitStep,
+    onError,
+    initialStep,
     controlledStep,
   });
 
@@ -81,6 +87,8 @@ export function Stepper({
       disableNavigation,
       enableNavigation,
       isNavigationDisabled,
+      claimOrder,
+      orderGeneration,
     }),
     [
       registerStep,
@@ -90,6 +98,8 @@ export function Stepper({
       disableNavigation,
       enableNavigation,
       isNavigationDisabled,
+      claimOrder,
+      orderGeneration,
     ],
   );
 

@@ -2,11 +2,12 @@ import { useId, useLayoutEffect, useRef } from "react";
 import { useStepperContext } from "./StepperContext";
 import type { StepProps } from "./types";
 
-// Global counter for step mount order - ensures deterministic ordering
-let globalMountOrder = 0;
-
 /**
  * Step component - registers with Stepper and renders when current.
+ *
+ * Sort order comes from a counter owned by the parent Stepper and claimed in layout-effect order,
+ * which equals tree order for sibling Steps. Do not nest a Step inside another Step - that breaks
+ * the tree-order guarantee (wrapper components around a Step are fine).
  *
  * @example
  * ```tsx
@@ -22,15 +23,19 @@ let globalMountOrder = 0;
  */
 export function Step({ name, canProceed = true, children }: StepProps): React.ReactNode {
   const id = useId();
-  const { registerStep, unregisterStep, stepContext, currentStepId } = useStepperContext();
+  const { registerStep, unregisterStep, stepContext, currentStepId, claimOrder, orderGeneration } = useStepperContext();
 
-  // Track mount order - assigned once on first effect run
+  // Sort order, plus the generation of the counter it was claimed from
   const orderRef = useRef<number | null>(null);
+  const claimedGenerationRef = useRef<number | null>(null);
 
   useLayoutEffect(() => {
-    // Assign order on first registration only
-    if (orderRef.current === null) {
-      orderRef.current = globalMountOrder++;
+    // Claim on first registration, and again whenever the Stepper resets its counter. Effect
+    // re-runs from prop identity churn (e.g. an inline canProceed) must keep the existing order -
+    // claiming on every run would push this step to the end of the list.
+    if (orderRef.current === null || claimedGenerationRef.current !== orderGeneration) {
+      orderRef.current = claimOrder();
+      claimedGenerationRef.current = orderGeneration;
     }
 
     registerStep({
@@ -43,7 +48,7 @@ export function Step({ name, canProceed = true, children }: StepProps): React.Re
     return () => {
       unregisterStep(id);
     };
-  }, [id, name, canProceed, registerStep, unregisterStep]);
+  }, [id, name, canProceed, orderGeneration, claimOrder, registerStep, unregisterStep]);
 
   // Only render if this is the current step
   if (currentStepId !== id) return null;

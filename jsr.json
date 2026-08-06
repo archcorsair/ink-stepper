@@ -1,9 +1,12 @@
 {
   "name": "@archcorsair/ink-stepper",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "exports": "./src/index.ts",
   "imports": {
     "ink": "npm:ink@^6.6.0",
     "react": "npm:react@^19.2.3"
+  },
+  "publish": {
+    "exclude": ["tests/", "examples/", "docs/", ".github/", "scripts/"]
   }
 }
