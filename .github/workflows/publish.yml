@@ -111,10 +111,12 @@ jobs:
 
       - name: Verify both registries serve the tagged version
         run: |
+          # Registry metadata can lag minutes behind a successful publish (JSR's
+          # meta.json took >2 minutes on v0.2.3), so give propagation ~3 minutes.
           VERSION="${GITHUB_REF_NAME#v}"
           npm_ok=0
           jsr_ok=0
-          for attempt in 1 2 3 4 5; do
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
             if [ "$npm_ok" -eq 0 ]; then
               if curl -fsSL "https://registry.npmjs.org/ink-stepper" \
                 | jq -e --arg v "$VERSION" '.versions | has($v)' >/dev/null 2>&1; then
@@ -133,8 +135,8 @@ jobs:
               echo "Both registries serve $VERSION"
               exit 0
             fi
-            echo "attempt $attempt: npm_ok=$npm_ok jsr_ok=$jsr_ok - retrying in 10s"
-            sleep 10
+            echo "attempt $attempt: npm_ok=$npm_ok jsr_ok=$jsr_ok - retrying in 15s"
+            sleep 15
           done
           echo "::error::Registry verification failed for $VERSION (npm_ok=$npm_ok jsr_ok=$jsr_ok)"
           exit 1
