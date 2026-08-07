@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- CI runs an ink compatibility matrix covering the full declared peer range - the exact 6.x floor
+  (6.6.0) and the latest 7.x - in addition to the lockfile-pinned version, so the dual-major claim
+  stays verified. An API-surface audit against ink 7 confirmed every ink API this library uses is
+  unchanged or additive across the two majors.
+
 ## [0.2.2] - 2026-08-06
 
 ### Added

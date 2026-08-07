@@ -31,3 +31,58 @@ jobs:
 
       - name: Run tests
         run: bun test
+
+  # Verifies the full declared ink peer range, not just the lockfile pin:
+  # the exact floor of the 6.x range, and whatever the newest 7.x is at run
+  # time. Legs re-resolve dependencies against the pinned ink, so a change
+  # that only works on one major fails here.
+  compat:
+    name: Compat (ink ${{ matrix.ink }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ink: ["6.6.0", "^7.0.0"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # bun add can rewrite the peer range without re-resolving node_modules,
+      # so pin the manifest and reinstall from scratch instead.
+      - name: Pin ink to ${{ matrix.ink }} and reinstall
+        run: |
+          node -e "
+            const fs = require('fs');
+            const p = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            p.peerDependencies.ink = process.argv[1];
+            fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');
+          " "${{ matrix.ink }}"
+          rm bun.lock
+          bun install
+
+      - name: Assert resolved ink satisfies ${{ matrix.ink }}
+        run: |
+          node -e "
+            const requested = process.argv[1];
+            const resolved = require('./node_modules/ink/package.json').version;
+            const ok = requested.startsWith('^')
+              ? resolved.split('.')[0] === requested.slice(1).split('.')[0]
+              : resolved === requested;
+            console.log('requested ' + requested + ', resolved ' + resolved);
+            if (!ok) {
+              console.error('resolved ink does not satisfy the matrix pin');
+              process.exit(1);
+            }
+          " "${{ matrix.ink }}"
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Run tests
+        run: bun test
