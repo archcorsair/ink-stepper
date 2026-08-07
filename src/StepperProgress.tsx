@@ -97,6 +97,9 @@ export function StepperProgress({
           // minWidth (not width) so a label longer than its column overflows instead of wrapping.
           const marker = step.completed ? markers.completed : step.current ? markers.current : markers.pending;
           const width = isFirst ? marker.length : SEGMENT_WIDTH + marker.length;
+          // A label longer than its column overflows toward the next label (minWidth allows
+          // that); guarantee at least one space of separation so adjacent names never touch.
+          const label = step.name.length >= width ? `${step.name} ` : step.name;
 
           return (
             <Box key={step.id} minWidth={width} flexShrink={0} justifyContent="center">
@@ -105,7 +108,7 @@ export function StepperProgress({
                 bold={step.current}
                 dimColor={!step.completed && !step.current}
               >
-                {step.name}
+                {label}
               </Text>
             </Box>
           );

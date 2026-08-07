@@ -13,7 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cycling its brightness (bright → normal → dim → normal), the same frame-swapping technique CLI
   spinners use. Off by default; composes with custom `markers`; ignored with `renderProgress`.
 
+### Fixed
+
+- Progress bar labels wider than their marker column (e.g. an 8-character name over a 1-wide
+  marker) overflowed flush into the next label with no gap; overflowing labels now keep at least
+  one space of separation.
+
 ### Changed
+
+- Example wizard polish: default pulsing markers (matching the README demo), a keycap-styled hint
+  bar per step showing only the keys active right now, an "m" key cycling marker themes to demo the
+  `markers` prop live, a braille spinner during async validation, and a color-coded lifecycle log.
 
 - CI runs an ink compatibility matrix covering the full declared peer range - the exact 6.x floor
   (6.6.0) and the latest 7.x - in addition to the lockfile-pinned version, so the dual-major claim

@@ -1412,3 +1412,30 @@ describe("pulse", () => {
     await new Promise((r) => setTimeout(r, 600));
   });
 });
+
+describe("progress label separation", () => {
+  test("a label wider than its marker column never touches the next label", () => {
+    const { lastFrame } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="Welcome">
+          <Text>a</Text>
+        </Step>
+        <Step name="Name">
+          <Text>b</Text>
+        </Step>
+        <Step name="Validate">
+          <Text>c</Text>
+        </Step>
+        <Step name="Review">
+          <Text>d</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    const frame = lastFrame() ?? "";
+    // "Validate" (8 chars) overflows its 7-wide column; it must not fuse with "Review".
+    expect(frame).not.toContain("ValidateReview");
+    expect(frame).toContain("Validate");
+    expect(frame).toContain("Review");
+  });
+});

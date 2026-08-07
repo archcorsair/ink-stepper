@@ -8,22 +8,24 @@
  * It imports from `../src` on purpose, so it always exercises the working tree rather than a
  * previously built `dist`. Every step demonstrates one feature of the library:
  *
- *   Welcome   - plain (non render-function) step content
+ *   Welcome   - keyboard navigation, the pulsing current marker (`pulse`)
  *   Name      - a hand-rolled text input coordinated through `useStepperInput`
  *   Validate  - async `canProceed` with `isValidating`, plus an `onError` path that must not crash
- *   Extra     - a conditional step that must appear in TREE position when toggled on
+ *   Extra     - a conditional step ("t") that must appear in TREE position when toggled on
  *   Review    - `goTo` jump back to the first step, then `onComplete`
  *
- * Every lifecycle callback appends to the event log rendered under the wizard, which makes the
- * ordering of onExitStep -> onStepChange -> onEnterStep observable.
+ * Global keys: "t" toggles the conditional Extra step, "m" cycles marker themes (the `markers`
+ * prop), "q" quits. Each step's key bar shows only the keys that work right now. Lifecycle
+ * callbacks append to the log under the wizard, so onExitStep -> onStepChange -> onEnterStep
+ * ordering is observable.
  */
 import { Box, render, Text, useApp, useInput } from "ink";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Step, type StepContext, Stepper, useStepperInput } from "../src";
+import { Step, type StepContext, Stepper, type StepperMarkers, useStepperInput } from "../src";
 
 const VALIDATION_DELAY_MS = 800;
-const MAX_LOG_ENTRIES = 4;
+const MAX_LOG_ENTRIES = 3;
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -37,30 +39,77 @@ function printableOnly(input: string): string {
     .join("");
 }
 
-interface LogEntry {
-  id: number;
-  text: string;
+// ---------------------------------------------------------------------------
+// Small presentational pieces
+// ---------------------------------------------------------------------------
+
+interface KeyHint {
+  cap: string;
+  label: string;
 }
 
-/** Shared chrome so every step prints the active step name + index in a greppable form. */
-function StepFrame({
-  title,
-  ctx,
-  children,
-}: {
-  title: string;
-  ctx: StepContext;
-  children: React.ReactNode;
-}): React.JSX.Element {
+/** Keycap-styled hint row: only the keys that do something on the current step. */
+function KeyBar({ hints }: { hints: KeyHint[] }): React.JSX.Element {
   return (
-    <Box flexDirection="column" borderStyle="round" paddingX={1}>
-      <Text bold color="cyan">
-        Active: {title} ({ctx.currentStep + 1}/{ctx.totalSteps})
-      </Text>
-      {children}
+    <Box marginTop={1}>
+      {hints.map((hint) => (
+        <Box key={hint.cap} marginRight={2}>
+          <Text bold color="black" backgroundColor="cyan">
+            {` ${hint.cap} `}
+          </Text>
+          <Text dimColor> {hint.label}</Text>
+        </Box>
+      ))}
     </Box>
   );
 }
+
+const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧"];
+
+/** Braille spinner - the classic frame-swapping terminal animation. */
+function Spinner({ color }: { color?: string }): React.JSX.Element {
+  const [frame, setFrame] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setFrame((prev) => (prev + 1) % SPINNER_FRAMES.length);
+    }, 120);
+    return () => {
+      clearInterval(id);
+    };
+  }, []);
+
+  return <Text color={color}>{SPINNER_FRAMES[frame]}</Text>;
+}
+
+interface StepFrameProps {
+  title: string;
+  ctx: StepContext;
+  hints: KeyHint[];
+  children: React.ReactNode;
+}
+
+/** Shared chrome: bordered step card with a title line and a per-step key bar. */
+function StepFrame({ title, ctx, hints, children }: StepFrameProps): React.JSX.Element {
+  return (
+    <Box flexDirection="column" borderStyle="round" borderColor="gray" paddingX={2} paddingY={1}>
+      <Box marginBottom={1}>
+        <Text bold color="cyan">
+          {title}
+        </Text>
+        <Text dimColor>
+          {"  ·  "}step {ctx.currentStep + 1} of {ctx.totalSteps}
+        </Text>
+      </Box>
+      {children}
+      <KeyBar hints={hints} />
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Steps
+// ---------------------------------------------------------------------------
 
 interface NameStepProps {
   value: string;
@@ -118,17 +167,21 @@ function NameStep({ value, focused, onChange, onFocusChange, onSubmit, onBack }:
 
   return (
     <Box flexDirection="column">
-      <Text>What is your name?</Text>
-      <Text color="green">
-        {"> "}
-        {value}
-        {focused ? "_" : ""}
-      </Text>
-      <Text dimColor>
-        {focused
-          ? "typing - stepper navigation is disabled (Enter submits, Escape goes back)"
-          : "input released - stepper navigation is active again"}
-      </Text>
+      <Text>What should we call you?</Text>
+      <Box marginTop={1}>
+        <Text color="cyan" bold>
+          {"❯ "}
+        </Text>
+        <Text>{value}</Text>
+        {focused && <Text color="cyan">▌</Text>}
+      </Box>
+      <Box marginTop={1}>
+        <Text dimColor>
+          {focused
+            ? "input has the keyboard - stepper navigation is paused (useStepperInput)"
+            : "input released - stepper navigation is active again"}
+        </Text>
+      </Box>
     </Box>
   );
 }
@@ -146,10 +199,20 @@ function ValidateStep({ ctx, failNext, onToggleFail }: ValidateStepProps): React
 
   return (
     <Box flexDirection="column">
-      <Text>Enter runs an async canProceed ({VALIDATION_DELAY_MS}ms fake server round-trip).</Text>
-      <Text dimColor>Press "e" to arm a throwing validator - onError logs it and the app keeps running.</Text>
-      <Text color={failNext ? "red" : "gray"}>error mode: {failNext ? "ARMED (next check throws)" : "off"}</Text>
-      {ctx.isValidating ? <Text color="yellow">* validating...</Text> : <Text dimColor>idle</Text>}
+      <Text>
+        Enter runs an async <Text color="cyan">canProceed()</Text> ({VALIDATION_DELAY_MS}ms fake server round-trip).
+      </Text>
+      <Box marginTop={1}>
+        {ctx.isValidating ? (
+          <Text color="yellow">
+            <Spinner color="yellow" /> validating - navigation is locked
+          </Text>
+        ) : failNext ? (
+          <Text color="red">⚠ error armed - the next check throws (onError catches it)</Text>
+        ) : (
+          <Text dimColor>○ idle - press Enter to validate</Text>
+        )}
+      </Box>
     </Box>
   );
 }
@@ -167,13 +230,46 @@ function ReviewStep({ ctx, name, extraEnabled }: ReviewStepProps): React.JSX.Ele
 
   return (
     <Box flexDirection="column">
-      <Text>Collected so far:</Text>
-      <Text> name: {name || "(empty)"}</Text>
-      <Text> extra step: {extraEnabled ? "on" : "off"}</Text>
-      <Text dimColor>Press "1" to goTo(0) (raw jump, skips canProceed). Enter completes the wizard.</Text>
+      <Text>Everything the wizard collected:</Text>
+      <Box marginTop={1} flexDirection="column">
+        <Text>
+          <Text dimColor>{"name        "}</Text>
+          {name ? <Text color="green">{name}</Text> : <Text dimColor>(empty)</Text>}
+        </Text>
+        <Text>
+          <Text dimColor>{"extra step  "}</Text>
+          {extraEnabled ? <Text color="green">on</Text> : <Text dimColor>off</Text>}
+        </Text>
+      </Box>
     </Box>
   );
 }
+
+// ---------------------------------------------------------------------------
+// App shell
+// ---------------------------------------------------------------------------
+
+type EventKind = "change" | "enter" | "exit" | "error";
+
+interface LogEntry {
+  id: number;
+  kind: EventKind;
+  text: string;
+}
+
+const EVENT_COLORS: Record<EventKind, string> = {
+  change: "cyan",
+  enter: "green",
+  exit: "yellow",
+  error: "red",
+};
+
+/** Marker themes cycled with "m" - `undefined` means the library defaults ( ✓ / ● / ○ ). */
+const MARKER_THEMES: ReadonlyArray<{ name: string; markers: StepperMarkers | undefined }> = [
+  { name: "default", markers: undefined },
+  { name: "ascii", markers: { completed: "[x]", current: "[>]", pending: "[ ]" } },
+  { name: "squares", markers: { completed: " ■ ", current: "▣", pending: "□" } },
+];
 
 function parseInitialStep(raw: string | undefined): number | undefined {
   if (raw === undefined) return undefined;
@@ -187,12 +283,13 @@ function App(): React.JSX.Element {
   const [isTyping, setIsTyping] = useState(false);
   const [showExtra, setShowExtra] = useState(false);
   const [failNext, setFailNext] = useState(false);
+  const [markerTheme, setMarkerTheme] = useState(0);
   const [events, setEvents] = useState<LogEntry[]>([]);
   const nextEventId = useRef(0);
 
-  const log = useCallback((text: string) => {
+  const log = useCallback((kind: EventKind, text: string) => {
     const id = nextEventId.current++;
-    setEvents((prev) => [...prev, { id, text }].slice(-MAX_LOG_ENTRIES));
+    setEvents((prev) => [...prev, { id, kind, text }].slice(-MAX_LOG_ENTRIES));
   }, []);
 
   const finish = useCallback(
@@ -207,10 +304,11 @@ function App(): React.JSX.Element {
     [exit],
   );
 
-  // Global keys. Held off while the Name input has focus so "t"/"q" can be typed into it.
+  // Global keys. Held off while the Name input has focus so "t"/"m"/"q" can be typed into it.
   useInput(
     (input) => {
       if (input === "t") setShowExtra((prev) => !prev);
+      if (input === "m") setMarkerTheme((prev) => (prev + 1) % MARKER_THEMES.length);
       if (input === "q") finish("WIZARD QUIT (q)");
     },
     { isActive: !isTyping },
@@ -225,38 +323,54 @@ function App(): React.JSX.Element {
     return true;
   }, [failNext]);
 
+  const theme = MARKER_THEMES[markerTheme] ?? MARKER_THEMES[0];
+
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" paddingX={1} paddingY={1}>
       <Stepper
         onComplete={() => finish(`WIZARD COMPLETE name=${name || "(empty)"} extra=${showExtra ? "on" : "off"}`)}
         onCancel={() => finish("WIZARD CANCELLED")}
-        onStepChange={(step) => log(`change -> ${step}`)}
-        onEnterStep={(step) => log(`enter  ${step}`)}
+        onStepChange={(step) => log("change", `onStepChange(${step})`)}
+        onEnterStep={(step) => log("enter", `onEnterStep(${step})`)}
         onExitStep={(step) => {
-          log(`exit   ${step}`);
+          log("exit", `onExitStep(${step})`);
           return true;
         }}
-        onError={(error) => log(`error: ${error instanceof Error ? error.message : String(error)}`)}
+        onError={(error) => log("error", `onError: ${error instanceof Error ? error.message : String(error)}`)}
         initialStep={parseInitialStep(process.env.INITIAL_STEP)}
-        markers={{ completed: "[x]", current: "[>]", pending: "[ ]" }}
+        markers={theme?.markers}
         pulse
       >
         <Step name="Welcome">
           {(ctx) => (
-            <StepFrame title="Welcome" ctx={ctx}>
-              <Text>ink-stepper demo wizard.</Text>
-              <Text dimColor>Enter = next, Escape = back (cancels on the first step)</Text>
-              <Text dimColor>"t" = toggle the conditional Extra step, "q" = quit</Text>
-              <Text dimColor>"e" (on Validate) = make the next async check throw</Text>
-              <Text dimColor>"1" (on Review) = goTo(0)</Text>
-              <Text dimColor>INITIAL_STEP=&lt;n&gt; starts the wizard on step n</Text>
+            <StepFrame
+              title="Welcome"
+              ctx={ctx}
+              hints={[
+                { cap: "↵", label: "start" },
+                { cap: "⎋", label: "cancel" },
+              ]}
+            >
+              <Text>
+                Step-by-step wizards for <Text color="cyan">Ink</Text> terminal apps.
+              </Text>
+              <Box marginTop={1}>
+                <Text dimColor>Watch the current marker pulse above - that's the `pulse` prop.</Text>
+              </Box>
             </StepFrame>
           )}
         </Step>
 
         <Step name="Name" canProceed={name.trim().length > 0}>
           {(ctx) => (
-            <StepFrame title="Name" ctx={ctx}>
+            <StepFrame
+              title="Name"
+              ctx={ctx}
+              hints={[
+                { cap: "↵", label: "submit" },
+                { cap: "⎋", label: "back" },
+              ]}
+            >
               <NameStep
                 value={name}
                 focused={isTyping}
@@ -271,7 +385,15 @@ function App(): React.JSX.Element {
 
         <Step name="Validate" canProceed={validateOnServer}>
           {(ctx) => (
-            <StepFrame title="Validate" ctx={ctx}>
+            <StepFrame
+              title="Validate"
+              ctx={ctx}
+              hints={[
+                { cap: "↵", label: "validate + next" },
+                { cap: "e", label: failNext ? "disarm error" : "arm error" },
+                { cap: "⎋", label: "back" },
+              ]}
+            >
               <ValidateStep ctx={ctx} failNext={failNext} onToggleFail={() => setFailNext((prev) => !prev)} />
             </StepFrame>
           )}
@@ -280,9 +402,18 @@ function App(): React.JSX.Element {
         {showExtra && (
           <Step name="Extra">
             {(ctx) => (
-              <StepFrame title="Extra" ctx={ctx}>
+              <StepFrame
+                title="Extra"
+                ctx={ctx}
+                hints={[
+                  { cap: "↵", label: "next" },
+                  { cap: "⎋", label: "back" },
+                ]}
+              >
                 <Text>Conditional step, mounted after the first render.</Text>
-                <Text dimColor>It sorts into tree position (4th), not to the end of the list.</Text>
+                <Box marginTop={1}>
+                  <Text dimColor>It sorts into tree position (before Review), not to the end of the list.</Text>
+                </Box>
               </StepFrame>
             )}
           </Step>
@@ -290,21 +421,34 @@ function App(): React.JSX.Element {
 
         <Step name="Review">
           {(ctx) => (
-            <StepFrame title="Review" ctx={ctx}>
+            <StepFrame
+              title="Review"
+              ctx={ctx}
+              hints={[
+                { cap: "↵", label: "finish" },
+                { cap: "1", label: "goTo(0)" },
+                { cap: "⎋", label: "back" },
+              ]}
+            >
               <ReviewStep ctx={ctx} name={name} extraEnabled={showExtra} />
             </StepFrame>
           )}
         </Step>
       </Stepper>
 
+      {/* App-level keys + lifecycle log */}
+      <Box marginTop={1}>
+        <Text dimColor>
+          t extra step{showExtra ? " ✓" : ""} · m markers ({theme?.name}) · q quit
+        </Text>
+      </Box>
       <Box flexDirection="column" marginTop={1}>
-        <Text dimColor>events (oldest first, last {MAX_LOG_ENTRIES})</Text>
         {events.length === 0 ? (
-          <Text dimColor> (none yet)</Text>
+          <Text dimColor>lifecycle · quiet so far</Text>
         ) : (
           events.map((entry) => (
-            <Text key={entry.id} color="magenta">
-              {" "}
+            <Text key={entry.id} color={EVENT_COLORS[entry.kind]} dimColor={entry.kind !== "error"}>
+              {"↳ "}
               {entry.text}
             </Text>
           ))
