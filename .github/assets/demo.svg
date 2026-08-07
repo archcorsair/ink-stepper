@@ -1,0 +1,232 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 400" width="680" height="400" role="img" aria-label="Animated terminal demo of an ink-stepper wizard advancing through Welcome, Name, Validate and Review steps">
+  <style>
+    text {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    }
+    .scene { opacity: 0; }
+    .s1 { opacity: 1; animation: s1 16s linear infinite; }
+    .s2 { animation: s2 16s linear infinite; }
+    .s3 { animation: s3 16s linear infinite; }
+    .s4 { animation: s4 16s linear infinite; }
+    .s5 { animation: s5 16s linear infinite; }
+    .validating { animation: validating 16s linear infinite; }
+    .valid { animation: valid 16s linear infinite; }
+    @keyframes s1 { 0%, 18% { opacity: 1; } 19%, 100% { opacity: 0; } }
+    @keyframes s2 { 0%, 18.5% { opacity: 0; } 19.5%, 43% { opacity: 1; } 44%, 100% { opacity: 0; } }
+    @keyframes s3 { 0%, 43.5% { opacity: 0; } 44.5%, 65% { opacity: 1; } 66%, 100% { opacity: 0; } }
+    @keyframes s4 { 0%, 65.5% { opacity: 0; } 66.5%, 83% { opacity: 1; } 84%, 100% { opacity: 0; } }
+    @keyframes s5 { 0%, 84% { opacity: 0; } 85%, 99.5% { opacity: 1; } 100% { opacity: 0; } }
+    @keyframes validating { 0%, 43.5% { opacity: 0; } 44.5%, 57% { opacity: 1; } 58%, 100% { opacity: 0; } }
+    @keyframes valid { 0%, 58% { opacity: 0; } 59%, 65% { opacity: 1; } 66%, 100% { opacity: 0; } }
+    .t1 { animation: t1 16s linear infinite; }
+    .t2 { animation: t2 16s linear infinite; }
+    .t3 { animation: t3 16s linear infinite; }
+    .t4 { animation: t4 16s linear infinite; }
+    .t5 { animation: t5 16s linear infinite; }
+    .t6 { animation: t6 16s linear infinite; }
+    @keyframes t1 { 0%, 21% { opacity: 0; } 22%, 43% { opacity: 1; } 44%, 100% { opacity: 0; } }
+    @keyframes t2 { 0%, 23% { opacity: 0; } 24%, 43% { opacity: 1; } 44%, 100% { opacity: 0; } }
+    @keyframes t3 { 0%, 25% { opacity: 0; } 26%, 43% { opacity: 1; } 44%, 100% { opacity: 0; } }
+    @keyframes t4 { 0%, 27% { opacity: 0; } 28%, 43% { opacity: 1; } 44%, 100% { opacity: 0; } }
+    @keyframes t5 { 0%, 29% { opacity: 0; } 30%, 43% { opacity: 1; } 44%, 100% { opacity: 0; } }
+    @keyframes t6 { 0%, 31% { opacity: 0; } 32%, 43% { opacity: 1; } 44%, 100% { opacity: 0; } }
+    .cursor-track { animation: cursormove 16s linear infinite; }
+    @keyframes cursormove {
+      0%, 21% { transform: translateX(0); }
+      22%, 23% { transform: translateX(10px); }
+      24%, 25% { transform: translateX(20px); }
+      26%, 27% { transform: translateX(30px); }
+      28%, 29% { transform: translateX(40px); }
+      30%, 31% { transform: translateX(50px); }
+      32%, 100% { transform: translateX(60px); }
+    }
+    .cursor { animation: blink 1s step-end infinite; }
+    @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    /* The `pulse` prop's brightness staircase (bright/normal/dim = the three SGR
+       intensity levels), swapped as discrete frames like a real terminal repaint. */
+    .pulse-node { animation: nodepulse 1.12s step-end infinite; }
+    @keyframes nodepulse {
+      0% { fill: #6fe3ee; }
+      25% { fill: #39c5cf; }
+      50% { fill: #1d6d77; }
+      75% { fill: #39c5cf; }
+    }
+    /* Braille spinner: 8 glyph cells swapped per frame, like ink-spinner. */
+    .sp1 { animation: sp1 0.8s step-end infinite; }
+    .sp2 { animation: sp2 0.8s step-end infinite; }
+    .sp3 { animation: sp3 0.8s step-end infinite; }
+    .sp4 { animation: sp4 0.8s step-end infinite; }
+    .sp5 { animation: sp5 0.8s step-end infinite; }
+    .sp6 { animation: sp6 0.8s step-end infinite; }
+    .sp7 { animation: sp7 0.8s step-end infinite; }
+    .sp8 { animation: sp8 0.8s step-end infinite; }
+    @keyframes sp1 { 0% { opacity: 1; } 12.5%, 100% { opacity: 0; } }
+    @keyframes sp2 { 0% { opacity: 0; } 12.5% { opacity: 1; } 25%, 100% { opacity: 0; } }
+    @keyframes sp3 { 0%, 12.5% { opacity: 0; } 25% { opacity: 1; } 37.5%, 100% { opacity: 0; } }
+    @keyframes sp4 { 0%, 25% { opacity: 0; } 37.5% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    @keyframes sp5 { 0%, 37.5% { opacity: 0; } 50% { opacity: 1; } 62.5%, 100% { opacity: 0; } }
+    @keyframes sp6 { 0%, 50% { opacity: 0; } 62.5% { opacity: 1; } 75%, 100% { opacity: 0; } }
+    @keyframes sp7 { 0%, 62.5% { opacity: 0; } 75% { opacity: 1; } 87.5%, 100% { opacity: 0; } }
+    @keyframes sp8 { 0%, 75% { opacity: 0; } 87.5% { opacity: 1; } 100% { opacity: 0; } }
+    /* Twinkle = dim/bright glyph swap, not a fade. */
+    .tw1 { animation: twinkle 1.6s step-end infinite; }
+    .tw2 { animation: twinkle 1.6s step-end 0.4s infinite; }
+    .tw3 { animation: twinkle 1.6s step-end 0.9s infinite; }
+    @keyframes twinkle { 0%, 49% { opacity: 0.3; } 50%, 100% { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      .scene, .cursor, .cursor-track, .pulse-node, .tw1, .tw2, .tw3, .t1, .t2, .t3, .t4, .t5, .t6, .validating, .valid,
+      .sp1, .sp2, .sp3, .sp4, .sp5, .sp6, .sp7, .sp8 { animation: none; }
+    }
+  </style>
+
+  <!-- terminal window -->
+  <rect x="10" y="10" width="660" height="380" rx="12" fill="#14161f" stroke="#2d333d" stroke-width="1.5"/>
+  <circle cx="36" cy="36" r="6.5" fill="#ff5f57"/>
+  <circle cx="58" cy="36" r="6.5" fill="#febc2e"/>
+  <circle cx="80" cy="36" r="6.5" fill="#28c840"/>
+  <text x="340" y="41" text-anchor="middle" font-size="12" fill="#8b949e">bun run example — ink-stepper</text>
+  <line x1="10" y1="56" x2="670" y2="56" stroke="#2d333d" stroke-width="1"/>
+
+  <!-- step content frame (Ink borderStyle="round") -->
+  <rect x="90" y="170" width="500" height="165" rx="10" fill="#101219" stroke="#3d444d" stroke-width="1.5"/>
+
+  <!-- ============ SCENE 1 : Welcome ============ -->
+  <g class="scene s1">
+    <line x1="147" y1="110" x2="253" y2="110" stroke="#2d333d" stroke-width="3"/>
+    <line x1="287" y1="110" x2="393" y2="110" stroke="#2d333d" stroke-width="3"/>
+    <line x1="427" y1="110" x2="533" y2="110" stroke="#2d333d" stroke-width="3"/>
+    <circle class="pulse-node" cx="130" cy="110" r="7" fill="#39c5cf"/>
+    <circle cx="270" cy="110" r="7" fill="none" stroke="#6e7681" stroke-width="2"/>
+    <circle cx="410" cy="110" r="7" fill="none" stroke="#6e7681" stroke-width="2"/>
+    <circle cx="550" cy="110" r="7" fill="none" stroke="#6e7681" stroke-width="2"/>
+    <text x="130" y="142" text-anchor="middle" font-size="13" fill="#39c5cf" font-weight="bold">Welcome</text>
+    <text x="270" y="142" text-anchor="middle" font-size="13" fill="#6e7681">Name</text>
+    <text x="410" y="142" text-anchor="middle" font-size="13" fill="#6e7681">Validate</text>
+    <text x="550" y="142" text-anchor="middle" font-size="13" fill="#6e7681">Review</text>
+    <text x="120" y="220" font-size="16" fill="#e6edf3">Welcome to <tspan fill="#39c5cf" font-weight="bold">ink-stepper</tspan> ✦</text>
+    <text x="120" y="250" font-size="13" fill="#8b949e">Step-by-step wizards for Ink terminal apps.</text>
+    <text x="120" y="310" font-size="13" fill="#6e7681">Enter ↵ next &#160;&#160;·&#160;&#160; Esc ⎋ back</text>
+  </g>
+
+  <!-- ============ SCENE 2 : Name (typing) ============ -->
+  <g class="scene s2">
+    <line x1="147" y1="110" x2="253" y2="110" stroke="#3fb950" stroke-width="3"/>
+    <line x1="287" y1="110" x2="393" y2="110" stroke="#2d333d" stroke-width="3"/>
+    <line x1="427" y1="110" x2="533" y2="110" stroke="#2d333d" stroke-width="3"/>
+    <g transform="translate(130,110)">
+      <circle r="8" fill="#3fb950"/>
+      <path d="M -3.5 0.5 L -1 3 L 4 -3" fill="none" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <circle class="pulse-node" cx="270" cy="110" r="7" fill="#39c5cf"/>
+    <circle cx="410" cy="110" r="7" fill="none" stroke="#6e7681" stroke-width="2"/>
+    <circle cx="550" cy="110" r="7" fill="none" stroke="#6e7681" stroke-width="2"/>
+    <text x="130" y="142" text-anchor="middle" font-size="13" fill="#3fb950">Welcome</text>
+    <text x="270" y="142" text-anchor="middle" font-size="13" fill="#39c5cf" font-weight="bold">Name</text>
+    <text x="410" y="142" text-anchor="middle" font-size="13" fill="#6e7681">Validate</text>
+    <text x="550" y="142" text-anchor="middle" font-size="13" fill="#6e7681">Review</text>
+    <text x="120" y="220" font-size="13" fill="#8b949e">Your name:</text>
+    <text y="253" font-size="16" fill="#e6edf3">
+      <tspan x="120" class="t1">D</tspan><tspan x="130" class="t2">a</tspan><tspan x="140" class="t3">n</tspan><tspan x="150" class="t4">i</tspan><tspan x="160" class="t5">e</tspan><tspan x="170" class="t6">l</tspan>
+    </text>
+    <g class="cursor-track">
+      <rect class="cursor" x="120" y="239" width="9" height="18" fill="#39c5cf"/>
+    </g>
+    <line x1="120" y1="262" x2="300" y2="262" stroke="#3d444d" stroke-width="1.5"/>
+    <text x="120" y="310" font-size="13" fill="#6e7681">useStepperInput() has the keyboard — Enter submits</text>
+  </g>
+
+  <!-- ============ SCENE 3 : Validate (async) ============ -->
+  <g class="scene s3">
+    <line x1="147" y1="110" x2="253" y2="110" stroke="#3fb950" stroke-width="3"/>
+    <line x1="287" y1="110" x2="393" y2="110" stroke="#3fb950" stroke-width="3"/>
+    <line x1="427" y1="110" x2="533" y2="110" stroke="#2d333d" stroke-width="3"/>
+    <g transform="translate(130,110)">
+      <circle r="8" fill="#3fb950"/>
+      <path d="M -3.5 0.5 L -1 3 L 4 -3" fill="none" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g transform="translate(270,110)">
+      <circle r="8" fill="#3fb950"/>
+      <path d="M -3.5 0.5 L -1 3 L 4 -3" fill="none" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <circle class="pulse-node" cx="410" cy="110" r="7" fill="#39c5cf"/>
+    <circle cx="550" cy="110" r="7" fill="none" stroke="#6e7681" stroke-width="2"/>
+    <text x="130" y="142" text-anchor="middle" font-size="13" fill="#3fb950">Welcome</text>
+    <text x="270" y="142" text-anchor="middle" font-size="13" fill="#3fb950">Name</text>
+    <text x="410" y="142" text-anchor="middle" font-size="13" fill="#39c5cf" font-weight="bold">Validate</text>
+    <text x="550" y="142" text-anchor="middle" font-size="13" fill="#6e7681">Review</text>
+    <g class="validating">
+      <text y="249" font-size="17" fill="#d29922"><tspan class="sp1" x="122">⠋</tspan><tspan class="sp2" x="122">⠙</tspan><tspan class="sp3" x="122">⠹</tspan><tspan class="sp4" x="122">⠸</tspan><tspan class="sp5" x="122">⠼</tspan><tspan class="sp6" x="122">⠴</tspan><tspan class="sp7" x="122">⠦</tspan><tspan class="sp8" x="122">⠇</tspan></text>
+      <text x="152" y="248" font-size="15" fill="#d29922">Checking name with the server…</text>
+      <text x="120" y="310" font-size="13" fill="#6e7681">async canProceed() — navigation locked while validating</text>
+    </g>
+    <g class="valid">
+      <g transform="translate(130,243)">
+        <circle r="9" fill="#3fb950"/>
+        <path d="M -4 0.5 L -1.5 3.5 L 4.5 -3.5" fill="none" stroke="#0d1117" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <text x="152" y="248" font-size="15" fill="#3fb950">Looks good — moving on</text>
+      <text x="120" y="310" font-size="13" fill="#6e7681">a thrown validator would land in onError, not crash</text>
+    </g>
+  </g>
+
+  <!-- ============ SCENE 4 : Review ============ -->
+  <g class="scene s4">
+    <line x1="147" y1="110" x2="253" y2="110" stroke="#3fb950" stroke-width="3"/>
+    <line x1="287" y1="110" x2="393" y2="110" stroke="#3fb950" stroke-width="3"/>
+    <line x1="427" y1="110" x2="533" y2="110" stroke="#3fb950" stroke-width="3"/>
+    <g transform="translate(130,110)">
+      <circle r="8" fill="#3fb950"/>
+      <path d="M -3.5 0.5 L -1 3 L 4 -3" fill="none" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g transform="translate(270,110)">
+      <circle r="8" fill="#3fb950"/>
+      <path d="M -3.5 0.5 L -1 3 L 4 -3" fill="none" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g transform="translate(410,110)">
+      <circle r="8" fill="#3fb950"/>
+      <path d="M -3.5 0.5 L -1 3 L 4 -3" fill="none" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <circle class="pulse-node" cx="550" cy="110" r="7" fill="#39c5cf"/>
+    <text x="130" y="142" text-anchor="middle" font-size="13" fill="#3fb950">Welcome</text>
+    <text x="270" y="142" text-anchor="middle" font-size="13" fill="#3fb950">Name</text>
+    <text x="410" y="142" text-anchor="middle" font-size="13" fill="#3fb950">Validate</text>
+    <text x="550" y="142" text-anchor="middle" font-size="13" fill="#39c5cf" font-weight="bold">Review</text>
+    <text x="120" y="215" font-size="15" fill="#e6edf3" font-weight="bold">Review your answers</text>
+    <text x="120" y="250" font-size="14" fill="#8b949e">name <tspan x="260" fill="#e6edf3">Daniel</tspan></text>
+    <text x="120" y="275" font-size="14" fill="#8b949e">steps <tspan x="260" fill="#e6edf3">4 of 4 · isLast: true</tspan></text>
+    <text x="120" y="310" font-size="13" fill="#6e7681">Enter ↵ finish &#160;&#160;·&#160;&#160; press 1 to goTo(0) and edit</text>
+  </g>
+
+  <!-- ============ SCENE 5 : Complete ============ -->
+  <g class="scene s5">
+    <line x1="147" y1="110" x2="253" y2="110" stroke="#3fb950" stroke-width="3"/>
+    <line x1="287" y1="110" x2="393" y2="110" stroke="#3fb950" stroke-width="3"/>
+    <line x1="427" y1="110" x2="533" y2="110" stroke="#3fb950" stroke-width="3"/>
+    <g transform="translate(130,110)">
+      <circle r="8" fill="#3fb950"/>
+      <path d="M -3.5 0.5 L -1 3 L 4 -3" fill="none" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g transform="translate(270,110)">
+      <circle r="8" fill="#3fb950"/>
+      <path d="M -3.5 0.5 L -1 3 L 4 -3" fill="none" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g transform="translate(410,110)">
+      <circle r="8" fill="#3fb950"/>
+      <path d="M -3.5 0.5 L -1 3 L 4 -3" fill="none" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g transform="translate(550,110)">
+      <circle r="8" fill="#3fb950"/>
+      <path d="M -3.5 0.5 L -1 3 L 4 -3" fill="none" stroke="#0d1117" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="130" y="142" text-anchor="middle" font-size="13" fill="#3fb950">Welcome</text>
+    <text x="270" y="142" text-anchor="middle" font-size="13" fill="#3fb950">Name</text>
+    <text x="410" y="142" text-anchor="middle" font-size="13" fill="#3fb950">Validate</text>
+    <text x="550" y="142" text-anchor="middle" font-size="13" fill="#3fb950">Review</text>
+    <text x="340" y="245" text-anchor="middle" font-size="20" fill="#3fb950" font-weight="bold">✔ Wizard complete</text>
+    <text x="340" y="278" text-anchor="middle" font-size="13" fill="#8b949e">onComplete() fired — thanks, Daniel!</text>
+    <text class="tw1" x="160" y="215" font-size="15" fill="#d29922">✦</text>
+    <text class="tw2" x="510" y="230" font-size="12" fill="#39c5cf">✦</text>
+    <text class="tw3" x="465" y="305" font-size="14" fill="#d29922">✦</text>
+    <text class="tw2" x="205" y="300" font-size="11" fill="#39c5cf">✦</text>
+  </g>
+</svg>

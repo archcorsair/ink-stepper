@@ -40,6 +40,7 @@ export function Stepper({
   showProgress = true,
   renderProgress,
   markers,
+  pulse = false,
 }: StepperProps): React.JSX.Element {
   const {
     stepContext,
@@ -112,7 +113,7 @@ export function Stepper({
           (renderProgress ? (
             renderProgress(progressContext)
           ) : (
-            <StepperProgress {...progressContext} markers={markers} />
+            <StepperProgress {...progressContext} markers={markers} pulse={pulse} />
           ))}
 
         {/* Step children - they self-register and self-render */}

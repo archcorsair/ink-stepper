@@ -1353,3 +1353,62 @@ describe("Stepper - dynamic step ordering", () => {
     expect(lastFrame()).not.toContain("last-body");
   });
 });
+
+describe("pulse", () => {
+  test("pulse animates the current marker over time", async () => {
+    const { frames, unmount } = render(
+      <Stepper onComplete={() => {}} pulse>
+        <Step name="One">
+          <Text>First</Text>
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    await new Promise((r) => setTimeout(r, 20));
+    const framesBefore = frames.length;
+    await new Promise((r) => setTimeout(r, 650));
+
+    // The brightness staircase re-renders the progress bar on each tick.
+    expect(frames.length).toBeGreaterThan(framesBefore);
+    unmount();
+  });
+
+  test("without pulse the progress bar is static", async () => {
+    const { frames, unmount } = render(
+      <Stepper onComplete={() => {}}>
+        <Step name="One">
+          <Text>First</Text>
+        </Step>
+        <Step name="Two">
+          <Text>Second</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    await new Promise((r) => setTimeout(r, 20));
+    const framesBefore = frames.length;
+    await new Promise((r) => setTimeout(r, 650));
+
+    expect(frames.length).toBe(framesBefore);
+    unmount();
+  });
+
+  test("unmounting while pulsing cleans up the interval", async () => {
+    const { unmount, lastFrame } = render(
+      <Stepper onComplete={() => {}} pulse>
+        <Step name="Only">
+          <Text>Content</Text>
+        </Step>
+      </Stepper>,
+    );
+
+    await new Promise((r) => setTimeout(r, 300));
+    expect(lastFrame()).toContain("Content");
+    unmount();
+    // If the interval leaked, the post-unmount ticks would warn/throw on state updates.
+    await new Promise((r) => setTimeout(r, 600));
+  });
+});

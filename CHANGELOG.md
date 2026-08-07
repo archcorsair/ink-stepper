@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `pulse` prop on `Stepper` - animates the current-step marker in the default progress bar by
+  cycling its brightness (bright → normal → dim → normal), the same frame-swapping technique CLI
+  spinners use. Off by default; composes with custom `markers`; ignored with `renderProgress`.
+
 ### Changed
 
 - CI runs an ink compatibility matrix covering the full declared peer range - the exact 6.x floor

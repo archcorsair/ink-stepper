@@ -2,6 +2,13 @@
 
 Step-by-step wizard component for [Ink](https://github.com/vadimdemedes/ink) terminal applications.
 
+<p align="center">
+  <img src=".github/assets/demo.svg" width="680" alt="Animated terminal demo: an ink-stepper wizard advancing through Welcome, Name, Validate and Review steps — typing into an input, running async validation with a spinner, and finishing with onComplete">
+</p>
+
+<details>
+<summary>Plain-text preview</summary>
+
 ```
 ━━━━━ ✓ ━━━━━━━━━━ ✓ ━━━━━━━━━━●━━━━━━━━━━○━━━━━
     Theme       Directory     Review      Done
@@ -17,6 +24,8 @@ Step-by-step wizard component for [Ink](https://github.com/vadimdemedes/ink) ter
 │                                                 │
 └─────────────────────────────────────────────────┘
 ```
+
+</details>
 
 ## Installation
 
@@ -90,6 +99,7 @@ Main container component that orchestrates step navigation.
 | `showProgress` | `boolean` | `true` | Show the progress bar |
 | `renderProgress` | `(ctx: ProgressContext) => ReactNode` | - | Custom progress bar renderer |
 | `markers` | `StepperMarkers` | - | Custom progress bar markers |
+| `pulse` | `boolean` | `false` | Pulse the current marker's brightness (bright → normal → dim), spinner-style. Ignored with `renderProgress` |
 
 ### `<Step>`
 

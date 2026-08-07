@@ -239,6 +239,7 @@ function App(): React.JSX.Element {
         onError={(error) => log(`error: ${error instanceof Error ? error.message : String(error)}`)}
         initialStep={parseInitialStep(process.env.INITIAL_STEP)}
         markers={{ completed: "[x]", current: "[>]", pending: "[ ]" }}
+        pulse
       >
         <Step name="Welcome">
           {(ctx) => (

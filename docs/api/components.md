@@ -21,6 +21,7 @@ The main container component.
 | `showProgress` | `boolean` | `true` | Whether to display the progress bar. |
 | `renderProgress` | `(ctx: ProgressContext) => ReactNode` | `undefined` | Custom renderer for the progress bar. |
 | `markers` | `StepperMarkers` | `undefined` | Custom configuration for progress bar symbols. |
+| `pulse` | `boolean` | `false` | Pulse the current-step marker's brightness (bright → normal → dim → normal, spinner-style). Ignored when `renderProgress` is provided. |
 
 ---
 

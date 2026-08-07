@@ -105,4 +105,10 @@ export interface StepperProps {
   renderProgress?: (context: ProgressContext) => ReactNode;
   /** Custom markers for progress bar states */
   markers?: StepperMarkers;
+  /**
+   * Pulse the current-step marker in the default progress bar by cycling its
+   * brightness (bright → normal → dim → normal), the way terminal spinners
+   * animate (default: false). Ignored when `renderProgress` is provided.
+   */
+  pulse?: boolean;
 }

@@ -26,6 +26,18 @@ You can change the symbols used for completed, current, and pending steps using 
 
 Markers may differ in width from one another — the default set already does. The progress bar sizes each label column from the marker actually rendered for that step, so the labels stay aligned with their markers as steps complete.
 
+## Pulsing the Current Marker
+
+Enable `pulse` to animate the current step's marker, spinner-style:
+
+```tsx
+<Stepper pulse onComplete={handleComplete}>
+  {/* ... */}
+</Stepper>
+```
+
+The marker cycles through the three brightness levels a terminal offers — bright → normal → dim → normal — at about 3.5 frames per second, the same frame-swapping technique CLI spinners use. It composes with custom `markers` (only brightness changes, never the glyph) and is ignored when you take over rendering with `renderProgress`.
+
 ## Custom Progress Renderer
 
 For complete control over the progress bar, use the `renderProgress` prop. This allows you to replace the default renderer entirely.
