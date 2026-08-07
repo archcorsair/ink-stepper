@@ -35,11 +35,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # No lint step here on purpose: style enforcement lives in the Test workflow
+      # (PRs and pushes to main). A formatting opinion must never block a release.
       - name: Typecheck
         run: bun run typecheck
-
-      - name: Lint
-        run: bun run lint
 
       - name: Run tests
         run: bun test

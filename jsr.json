@@ -7,12 +7,6 @@
     "react": "npm:react@^19.2.3"
   },
   "publish": {
-    "exclude": [
-      "tests/",
-      "examples/",
-      "docs/",
-      ".github/",
-      "scripts/"
-    ]
+    "exclude": ["tests/", "examples/", "docs/", ".github/", "scripts/"]
   }
 }
