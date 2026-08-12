@@ -9,12 +9,16 @@
  * records at FontSize 15 / Width 720px, about 64 columns). Generated values come from a
  * seeded PRNG so recordings are reproducible byte for byte.
  *
+ * The progress bar is a custom `renderProgress` renderer with fixed geometry (equal-width
+ * marker cells, 16-column segments) so the bar spans the card width and never changes
+ * length as steps complete; it re-implements the brightness pulse for the current marker.
+ *
  * For the interactive kitchen-sink demo of every library feature, see wizard.tsx.
  */
 import { Box, render, Text, useApp, useInput } from "ink";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Step, type StepContext, Stepper, useStepperInput } from "../src";
+import { type ProgressContext, Step, type StepContext, Stepper, useStepperInput } from "../src";
 
 const WIDTH = 62;
 const VALIDATE_MS = 700;
@@ -143,6 +147,96 @@ function Field({ label, value, placeholder, busy, error, onEdit, onSubmit }: Fie
 }
 
 // ---------------------------------------------------------------------------
+// Fixed-geometry progress bar (renderProgress)
+// ---------------------------------------------------------------------------
+
+const MARKER_W = 3; // every marker cell renders exactly this wide
+const SEGMENT_W = 16;
+const STRIDE = MARKER_W + SEGMENT_W;
+
+const PULSE_COLORS: ReadonlyArray<{ color: string; dim: boolean }> = [
+  { color: "cyanBright", dim: false },
+  { color: "cyan", dim: false },
+  { color: "cyan", dim: true },
+  { color: "cyan", dim: false },
+];
+
+function usePulseColor(): { color: string; dim: boolean } {
+  const [phase, setPhase] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setPhase((p) => (p + 1) % PULSE_COLORS.length), 280);
+    return () => clearInterval(id);
+  }, []);
+  return PULSE_COLORS[phase % PULSE_COLORS.length] ?? { color: "cyan", dim: false };
+}
+
+/**
+ * Bar geometry is constant: N equal-width marker cells joined by fixed segments,
+ * so completing a step recolors the bar without ever changing its length.
+ */
+function DemoProgress({ steps }: Pick<ProgressContext, "steps">): React.JSX.Element {
+  const pulse = usePulseColor();
+
+  const markerCell = (step: ProgressContext["steps"][number]): React.JSX.Element => {
+    if (step.completed) {
+      return (
+        <Text key={step.id} color="green">
+          {" ✓ "}
+        </Text>
+      );
+    }
+    if (step.current) {
+      return (
+        <Text key={step.id} color={pulse.color} bold dimColor={pulse.dim}>
+          {" ● "}
+        </Text>
+      );
+    }
+    return (
+      <Text key={step.id} color="gray" dimColor>
+        {" ○ "}
+      </Text>
+    );
+  };
+
+  // Label row: each name centered under its marker cell, clamped into the row.
+  const rowWidth = steps.length * STRIDE - SEGMENT_W;
+  const labels: React.JSX.Element[] = [];
+  let cursor = 0;
+  steps.forEach((step, i) => {
+    const center = i * STRIDE + MARKER_W / 2;
+    const start = Math.max(cursor, Math.min(Math.round(center - step.name.length / 2), rowWidth - step.name.length));
+    labels.push(
+      <Text key={step.id}>
+        {" ".repeat(start - cursor)}
+        <Text
+          color={step.completed ? "green" : step.current ? "cyan" : "gray"}
+          bold={step.current}
+          dimColor={!step.completed && !step.current}
+        >
+          {step.name}
+        </Text>
+      </Text>,
+    );
+    cursor = start + step.name.length;
+  });
+
+  return (
+    <Box flexDirection="column" marginBottom={1} marginLeft={1}>
+      <Box>
+        {steps.map((step, i) => (
+          <Text key={step.id}>
+            {i > 0 && <Text color={step.completed ? "green" : "gray"}>{"━".repeat(SEGMENT_W)}</Text>}
+            {markerCell(step)}
+          </Text>
+        ))}
+      </Box>
+      <Box>{labels}</Box>
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // App
 // ---------------------------------------------------------------------------
 
@@ -177,8 +271,15 @@ function App(): React.JSX.Element {
     return (
       <Box flexDirection="column" paddingX={1} paddingY={1}>
         <Header />
-        <Box marginTop={1} marginBottom={1} width={WIDTH} justifyContent="center">
-          <Text color="green"> ✓ ━━━━━━ ✓ ━━━━━━ ✓ ━━━━━━ ✓ </Text>
+        <Box marginTop={1}>
+          <DemoProgress
+            steps={["Project", "Stack", "Team", "Review"].map((name) => ({
+              id: name,
+              name,
+              completed: true,
+              current: false,
+            }))}
+          />
         </Box>
         <Card>
           <Box>
@@ -211,7 +312,11 @@ function App(): React.JSX.Element {
     <Box flexDirection="column" paddingX={1} paddingY={1}>
       <Header />
       <Box marginTop={1} flexDirection="column">
-        <Stepper onComplete={() => setDone(true)} onCancel={() => exit()} pulse>
+        <Stepper
+          onComplete={() => setDone(true)}
+          onCancel={() => exit()}
+          renderProgress={({ steps }) => <DemoProgress steps={steps} />}
+        >
           <Step name="Project" canProceed={projectName.trim().length > 0}>
             {(ctx) => (
               <ProjectStep

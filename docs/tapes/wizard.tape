@@ -23,37 +23,37 @@ Enter
 Sleep 3s
 Show
 
-# Step 1: Project - let the pulsing marker breathe, then type the name
-Sleep 1.2s
-Type@70ms "ink-notes"
-Sleep 600ms
+# Step 1: Project - let the pulsing marker breathe, then type at human speed
+Sleep 1.6s
+Type@120ms "ink-notes"
+Sleep 800ms
 Enter
 
 # Step 2: Stack - arrow-select
-Sleep 900ms
+Sleep 1200ms
 Down
-Sleep 500ms
+Sleep 700ms
 Enter
 
 # Step 3: Team - fail validation first, hold on the error, then correct it
-Sleep 900ms
-Type@60ms "dev@local"
+Sleep 1200ms
+Type@115ms "dev@local"
+Sleep 600ms
+Enter
+Sleep 1400ms
+Sleep 1800ms
+Backspace@85ms 9
 Sleep 400ms
+Type@110ms "mara@sable.dev"
+Sleep 700ms
 Enter
-Sleep 1300ms
 Sleep 1600ms
-Backspace@45ms 9
-Sleep 300ms
-Type@55ms "mara@sable.dev"
-Sleep 500ms
-Enter
-Sleep 1500ms
 
 # Step 4: Review - read, then create
-Sleep 1300ms
+Sleep 1600ms
 Enter
 
 # Completion - hold on the success state, then quit off-screen
-Sleep 2500ms
+Sleep 3s
 Hide
 Type "q"
