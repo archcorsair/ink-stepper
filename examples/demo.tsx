@@ -193,7 +193,7 @@ function DemoProgress({ steps }: Pick<ProgressContext, "steps">): React.JSX.Elem
       );
     }
     return (
-      <Text key={step.id} color="gray" dimColor>
+      <Text key={step.id} color="white">
         {" ○ "}
       </Text>
     );
@@ -209,11 +209,7 @@ function DemoProgress({ steps }: Pick<ProgressContext, "steps">): React.JSX.Elem
     labels.push(
       <Text key={step.id}>
         {" ".repeat(start - cursor)}
-        <Text
-          color={step.completed ? "green" : step.current ? "cyan" : "gray"}
-          bold={step.current}
-          dimColor={!step.completed && !step.current}
-        >
+        <Text color={step.completed ? "green" : step.current ? "cyan" : "white"} bold={step.current}>
           {step.name}
         </Text>
       </Text>,
